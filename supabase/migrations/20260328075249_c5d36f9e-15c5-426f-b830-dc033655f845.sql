@@ -1,0 +1,1 @@
+ALTER TABLE public.students ADD COLUMN azure_person_id text;
