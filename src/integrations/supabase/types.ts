@@ -14,16 +14,174 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      attendance_records: {
+        Row: {
+          confidence: number | null
+          created_at: string
+          enrollment_no: string
+          id: string
+          session_id: string
+          status: Database["public"]["Enums"]["attendance_status"]
+          student_id: string
+          student_name: string
+        }
+        Insert: {
+          confidence?: number | null
+          created_at?: string
+          enrollment_no: string
+          id?: string
+          session_id: string
+          status: Database["public"]["Enums"]["attendance_status"]
+          student_id: string
+          student_name: string
+        }
+        Update: {
+          confidence?: number | null
+          created_at?: string
+          enrollment_no?: string
+          id?: string
+          session_id?: string
+          status?: Database["public"]["Enums"]["attendance_status"]
+          student_id?: string
+          student_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "attendance_records_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "attendance_sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "attendance_records_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      attendance_sessions: {
+        Row: {
+          created_at: string
+          date: string
+          faculty_id: string
+          faculty_name: string | null
+          id: string
+          method: Database["public"]["Enums"]["attendance_method"]
+          subject: string
+          total_absent: number | null
+          total_present: number | null
+        }
+        Insert: {
+          created_at?: string
+          date?: string
+          faculty_id: string
+          faculty_name?: string | null
+          id?: string
+          method: Database["public"]["Enums"]["attendance_method"]
+          subject: string
+          total_absent?: number | null
+          total_present?: number | null
+        }
+        Update: {
+          created_at?: string
+          date?: string
+          faculty_id?: string
+          faculty_name?: string | null
+          id?: string
+          method?: Database["public"]["Enums"]["attendance_method"]
+          subject?: string
+          total_absent?: number | null
+          total_present?: number | null
+        }
+        Relationships: []
+      }
+      students: {
+        Row: {
+          branch: string | null
+          created_at: string
+          email: string | null
+          enrollment_no: string
+          face_enrolled: boolean | null
+          face_image_url: string | null
+          full_name: string
+          id: string
+          year: number | null
+        }
+        Insert: {
+          branch?: string | null
+          created_at?: string
+          email?: string | null
+          enrollment_no: string
+          face_enrolled?: boolean | null
+          face_image_url?: string | null
+          full_name: string
+          id?: string
+          year?: number | null
+        }
+        Update: {
+          branch?: string | null
+          created_at?: string
+          email?: string | null
+          enrollment_no?: string
+          face_enrolled?: boolean | null
+          face_image_url?: string | null
+          full_name?: string
+          id?: string
+          year?: number | null
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          name: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id?: string
+          name: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          name?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_user_role: {
+        Args: { _user_id: string }
+        Returns: Database["public"]["Enums"]["app_role"]
+      }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "faculty"
+      attendance_method: "ai_photo" | "iot_dataset"
+      attendance_status: "present" | "absent"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +308,10 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "faculty"],
+      attendance_method: ["ai_photo", "iot_dataset"],
+      attendance_status: ["present", "absent"],
+    },
   },
 } as const
