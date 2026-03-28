@@ -28,7 +28,7 @@ const AttendanceLogs = () => {
       let query = supabase.from('attendance_sessions').select('*').order('date', { ascending: false });
       if (dateFrom) query = query.gte('date', dateFrom);
       if (dateTo) query = query.lte('date', dateTo);
-      if (methodFilter !== 'all') query = query.eq('method', methodFilter);
+      if (methodFilter !== 'all') query = query.eq('method', methodFilter as 'ai_photo' | 'iot_dataset');
       const { data } = await query;
       setSessions(data || []);
       setLoading(false);
