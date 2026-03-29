@@ -53,40 +53,55 @@ const UploadPhoto = () => {
   const startRecognition = async () => {
     setPhase('processing');
 
-    // Step 1: Upload
-    updateStep(0, 'active');
-    await new Promise(r => setTimeout(r, 1000));
-    updateStep(0, 'done');
+    try {
+      // Step 1: Upload photos
+      updateStep(0, 'active');
+      const formData = new FormData();
+      formData.append('subject', subject);
+      files.forEach((f, i) => formData.append(`image_${i}`, f));
+      updateStep(0, 'done');
 
-    // Step 2: Send to API
-    updateStep(1, 'active');
-    await new Promise(r => setTimeout(r, 1200));
-    updateStep(1, 'done');
+      // Step 2: Send to Azure Face API
+      updateStep(1, 'active');
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData?.session?.access_token;
 
-    // Step 3: Detect faces
-    updateStep(2, 'active');
-    await new Promise(r => setTimeout(r, 1000));
-    updateStep(2, 'done');
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/recognize-faces`,
+        {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}` },
+          body: formData,
+        }
+      );
+      updateStep(1, 'done');
 
-    // Step 4: Match students
-    updateStep(3, 'active');
-    const { data: students } = await supabase.from('students').select('*').eq('face_enrolled', true);
-    await new Promise(r => setTimeout(r, 800));
-    updateStep(3, 'done');
+      // Step 3: Detecting Faces
+      updateStep(2, 'active');
+      const result = await res.json();
+      if (!res.ok) {
+        toast.error(result.error || 'Recognition failed');
+        setPhase('upload');
+        return;
+      }
+      updateStep(2, 'done');
 
-    // Step 5: Generate report (simulate — real implementation would call edge function)
-    updateStep(4, 'active');
-    const allStudents = students || [];
-    const simulatedResults = allStudents.map(s => ({
-      student_id: s.id, enrollment_no: s.enrollment_no, student_name: s.full_name,
-      status: Math.random() > 0.2 ? 'present' : 'absent',
-      confidence: Math.random() > 0.2 ? 0.7 + Math.random() * 0.3 : null,
-    }));
-    await new Promise(r => setTimeout(r, 600));
-    updateStep(4, 'done');
+      // Step 4: Matching Students
+      updateStep(3, 'active');
+      await new Promise(r => setTimeout(r, 500));
+      updateStep(3, 'done');
 
-    setResults(simulatedResults);
-    setPhase('results');
+      // Step 5: Generating Report
+      updateStep(4, 'active');
+      await new Promise(r => setTimeout(r, 400));
+      updateStep(4, 'done');
+
+      setResults(result.results || []);
+      setPhase('results');
+    } catch (err: any) {
+      toast.error(err.message || 'Recognition failed');
+      setPhase('upload');
+    }
   };
 
   const saveAttendance = async () => {
