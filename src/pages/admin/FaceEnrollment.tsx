@@ -64,17 +64,41 @@ const FaceEnrollment = () => {
   const handleEnroll = async () => {
     if (!selected || !file) return;
     setEnrolling(true);
-    const path = `students/${selected.enrollment_no}/${Date.now()}.jpg`;
-    const { error: uploadErr } = await supabase.storage.from('face-images').upload(path, file);
-    if (uploadErr) { toast.error('Upload failed'); setEnrolling(false); return; }
 
-    const { data: urlData } = supabase.storage.from('face-images').getPublicUrl(path);
-    await supabase.from('students').update({ face_image_url: urlData.publicUrl, face_enrolled: true }).eq('id', selected.id);
+    try {
+      const formData = new FormData();
+      formData.append('student_id', selected.id);
+      formData.append('enrollment_no', selected.enrollment_no);
+      formData.append('full_name', selected.full_name);
+      formData.append('image', file);
 
-    setEnrolling(false);
-    setEnrolled(true);
-    toast.success('Face enrolled successfully!');
-    setTimeout(() => { setSelected(null); setPreview(null); setFile(null); setMode(null); setEnrolled(false); fetchStudents(); }, 2000);
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData?.session?.access_token;
+
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/add-face`,
+        {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}` },
+          body: formData,
+        }
+      );
+
+      const result = await res.json();
+      if (!res.ok) {
+        toast.error(result.error || 'Enrollment failed');
+        setEnrolling(false);
+        return;
+      }
+
+      setEnrolling(false);
+      setEnrolled(true);
+      toast.success('Face enrolled successfully!');
+      setTimeout(() => { setSelected(null); setPreview(null); setFile(null); setMode(null); setEnrolled(false); fetchStudents(); }, 2000);
+    } catch (err: any) {
+      toast.error(err.message || 'Enrollment failed');
+      setEnrolling(false);
+    }
   };
 
   return (
