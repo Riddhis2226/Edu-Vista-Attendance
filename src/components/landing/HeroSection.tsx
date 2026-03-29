@@ -231,6 +231,7 @@ const HeroSection: React.FC = () => {
           </FloatingCard>
         </div>
       </div>
+      <DemoWalkthroughModal open={demoOpen} onOpenChange={setDemoOpen} />
     </section>
   );
 };
