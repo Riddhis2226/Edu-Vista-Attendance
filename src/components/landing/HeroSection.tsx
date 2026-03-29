@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import DemoWalkthroughModal from './DemoWalkthroughModal';
 
 const wordReveal = {
   hidden: {},
