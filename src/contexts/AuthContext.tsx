@@ -11,6 +11,7 @@ interface AuthContextType {
   userName: string | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
+  signUp: (email: string, password: string, name: string, role: 'admin' | 'faculty') => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
 }
 
@@ -65,6 +66,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return { error: error as Error | null };
   };
 
+  const signUp = async (email: string, password: string, name: string, role: 'admin' | 'faculty') => {
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: { emailRedirectTo: window.location.origin },
+    });
+    if (error) return { error: error as Error | null };
+    if (data.user) {
+      await supabase.from('user_roles').insert({
+        user_id: data.user.id,
+        email,
+        name,
+        role,
+      });
+    }
+    return { error: null };
+  };
+
   const signOut = async () => {
     await supabase.auth.signOut();
     setRole(null);
@@ -72,7 +91,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   return (
-    <AuthContext.Provider value={{ session, user, role, userName, loading, signIn, signOut }}>
+    <AuthContext.Provider value={{ session, user, role, userName, loading, signIn, signUp, signOut }}>
       {children}
     </AuthContext.Provider>
   );
