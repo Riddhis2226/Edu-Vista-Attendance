@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { ArrowLeft } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Loader2, CheckCircle2, Eye, EyeOff, ShieldCheck, BookOpen } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
@@ -154,6 +155,10 @@ const SignupPage: React.FC = () => {
 
   return (
     <AuthLayout>
+      <Link to="/" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-primary transition-colors mb-4">
+        <ArrowLeft className="w-4 h-4" />
+        Back to Home
+      </Link>
       <div className="glass-card p-8 space-y-5">
         {/* Header */}
         <div className="text-center space-y-1">
