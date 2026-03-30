@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import eduvistaLogo from '@/assets/eduvista-logo.png';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { GraduationCap, Loader2 } from 'lucide-react';
@@ -73,9 +74,7 @@ const LoginPage = () => {
             animate={{ scale: 1 }}
             transition={{ type: 'spring', stiffness: 200, delay: 0.2 }}
           >
-            <div className="h-16 w-16 rounded-2xl bg-primary/20 flex items-center justify-center">
-              <GraduationCap className="h-10 w-10 text-primary" />
-            </div>
+            <img src={eduvistaLogo} alt="EduVista" className="h-16 w-auto" />
           </motion.div>
           <h1 className="text-2xl font-bold text-foreground">EduVista</h1>
           <p className="text-sm text-muted-foreground mt-1">AI-Powered Smart Attendance</p>

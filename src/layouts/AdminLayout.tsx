@@ -1,4 +1,5 @@
 import React from 'react';
+import eduvistaLogo from '@/assets/eduvista-logo.png';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -32,10 +33,8 @@ function AdminSidebarContent() {
       <SidebarContent>
         {/* Logo */}
         <div className="flex items-center gap-3 px-4 py-5 border-b border-sidebar-border">
-          <div className="glow-pulse">
-            <div className="h-9 w-9 rounded-lg bg-primary/20 flex items-center justify-center shrink-0">
-              <GraduationCap className="h-5 w-5 text-primary" />
-            </div>
+          <div className="glow-pulse shrink-0">
+            <img src={eduvistaLogo} alt="EduVista" className="h-9 w-auto" />
           </div>
           {!collapsed && <span className="font-bold text-lg text-foreground">EduVista</span>}
         </div>

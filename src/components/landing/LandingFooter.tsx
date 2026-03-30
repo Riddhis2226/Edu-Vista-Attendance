@@ -1,5 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import eduvistaLogo from '@/assets/eduvista-logo.png';
 
 const LandingFooter: React.FC = () => (
   <footer className="relative border-t border-transparent pt-12 pb-6" style={{ borderImage: 'linear-gradient(90deg, transparent, rgba(255,107,43,0.4), transparent) 1' }}>
@@ -7,11 +8,7 @@ const LandingFooter: React.FC = () => (
       <div className="grid sm:grid-cols-3 gap-8 mb-10">
         <div>
           <div className="flex items-center gap-2 mb-2">
-            <svg width="24" height="24" viewBox="0 0 32 32" fill="none">
-              <path d="M16 4L4 12V20L16 28L28 20V12L16 4Z" fill="hsl(18 100% 58% / 0.15)" stroke="hsl(18 100% 58%)" strokeWidth="1.5" />
-              <path d="M16 4L4 12L16 20L28 12L16 4Z" fill="hsl(18 100% 58% / 0.3)" />
-              <circle cx="16" cy="10" r="3" fill="hsl(18 100% 58%)" />
-            </svg>
+            <img src={eduvistaLogo} alt="EduVista" className="h-7 w-auto" />
             <span className="text-base font-bold text-foreground">EduVista</span>
           </div>
           <p className="text-xs text-muted-foreground">AI-Powered Smart Attendance System</p>
