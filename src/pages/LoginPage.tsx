@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import eduvistaLogo from '@/assets/eduvista-logo.png';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { GraduationCap, Loader2 } from 'lucide-react';

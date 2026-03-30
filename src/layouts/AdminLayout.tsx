@@ -1,4 +1,5 @@
 import React from 'react';
+import eduvistaLogo from '@/assets/eduvista-logo.png';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
