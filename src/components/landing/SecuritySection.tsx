@@ -4,10 +4,46 @@ import { Check } from 'lucide-react';
 
 const bullets = [
   'Face embeddings stored exclusively in Azure — never in your database',
-  'Student metadata isolated in Supabase with Row-Level Security',
+  'Student metadata isolated with Row-Level Security',
   'azure_person_id is the only link — a non-reversible reference',
   'All API calls encrypted in transit with TLS 1.2+',
 ];
+
+/* Animated data packet that travels along a path */
+const DataPacket: React.FC<{
+  pathD: string;
+  color: string;
+  delay?: number;
+  duration?: number;
+}> = ({ pathD, color, delay = 0, duration = 2.5 }) => (
+  <>
+    {/* Glow trail */}
+    <motion.circle
+      r="4"
+      fill="none"
+      stroke={color}
+      strokeWidth="6"
+      opacity="0.15"
+      filter="url(#glow)"
+    >
+      <animateMotion dur={`${duration}s`} repeatCount="indefinite" begin={`${delay}s`}>
+        <mpath href={`#${pathD}`} />
+      </animateMotion>
+    </motion.circle>
+    {/* Core dot */}
+    <motion.circle r="3" fill={color}>
+      <animateMotion dur={`${duration}s`} repeatCount="indefinite" begin={`${delay}s`}>
+        <mpath href={`#${pathD}`} />
+      </animateMotion>
+    </motion.circle>
+    {/* Inner bright core */}
+    <motion.circle r="1.5" fill="white" opacity="0.9">
+      <animateMotion dur={`${duration}s`} repeatCount="indefinite" begin={`${delay}s`}>
+        <mpath href={`#${pathD}`} />
+      </animateMotion>
+    </motion.circle>
+  </>
+);
 
 const SecuritySection: React.FC = () => {
   const ref = useRef<HTMLDivElement>(null);
@@ -55,59 +91,155 @@ const SecuritySection: React.FC = () => {
           </div>
         </motion.div>
 
-        {/* Right - Architecture diagram */}
+        {/* Right - Architecture diagram with flowing packets */}
         <motion.div
           initial={{ opacity: 0, x: 30 }}
           animate={inView ? { opacity: 1, x: 0 } : {}}
           transition={{ duration: 0.6, delay: 0.2 }}
           className="flex items-center justify-center"
         >
-          <div className="relative w-full max-w-sm">
-            {/* Photo box */}
-            <div className="absolute top-0 left-0 bg-white/[0.04] border border-white/10 rounded-xl px-4 py-3 text-center">
-              <div className="text-xl mb-1">📷</div>
-              <div className="text-[10px] text-white/60 font-medium">Class Photo</div>
-            </div>
+          <svg className="w-full max-w-sm" viewBox="0 0 400 280" fill="none">
+            <defs>
+              <filter id="glow">
+                <feGaussianBlur stdDeviation="3" result="coloredBlur" />
+                <feMerge>
+                  <feMergeNode in="coloredBlur" />
+                  <feMergeNode in="SourceGraphic" />
+                </feMerge>
+              </filter>
+              {/* Paths for packets to follow */}
+              <path id="path-photo-azure" d="M 100 60 C 140 60 160 60 200 60" />
+              <path id="path-azure-db" d="M 280 60 C 310 60 330 100 340 140" />
+              <path id="path-photo-down" d="M 80 80 C 80 120 80 160 80 200" />
+            </defs>
 
-            {/* Azure box */}
-            <motion.div
-              animate={{ boxShadow: ['0 0 20px rgba(0,194,255,0.1)', '0 0 40px rgba(0,194,255,0.2)', '0 0 20px rgba(0,194,255,0.1)'] }}
-              transition={{ duration: 3, repeat: Infinity }}
-              className="absolute top-0 left-1/2 -translate-x-1/2 bg-white/[0.04] border border-secondary/20 rounded-xl px-4 py-3 text-center"
+            {/* ── Photo Node ── */}
+            <motion.g
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={inView ? { opacity: 1, scale: 1 } : {}}
+              transition={{ delay: 0.3 }}
             >
-              <div className="text-xl mb-1">☁️</div>
-              <div className="text-[10px] text-secondary font-medium">Azure Face API</div>
-              <div className="text-[8px] text-white/30 mt-1">Embeddings stored here</div>
-            </motion.div>
+              <rect x="30" y="20" width="100" height="80" rx="14" fill="rgba(255,255,255,0.04)" stroke="rgba(255,255,255,0.12)" strokeWidth="1" />
+              <text x="80" y="52" textAnchor="middle" fontSize="22">📷</text>
+              <text x="80" y="72" textAnchor="middle" fontSize="9" fill="rgba(255,255,255,0.6)" fontWeight="600">Class Photo</text>
+              <text x="80" y="86" textAnchor="middle" fontSize="7" fill="rgba(255,255,255,0.3)">Upload / Capture</text>
+            </motion.g>
 
-            {/* Supabase box */}
-            <motion.div
-              animate={{ boxShadow: ['0 0 20px rgba(255,107,43,0.1)', '0 0 40px rgba(255,107,43,0.2)', '0 0 20px rgba(255,107,43,0.1)'] }}
-              transition={{ duration: 3, repeat: Infinity, delay: 1.5 }}
-              className="absolute top-0 right-0 bg-white/[0.04] border border-primary/20 rounded-xl px-4 py-3 text-center"
+            {/* ── Azure Node ── */}
+            <motion.g
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={inView ? { opacity: 1, scale: 1 } : {}}
+              transition={{ delay: 0.5 }}
             >
-              <div className="text-xl mb-1">🗄️</div>
-              <div className="text-[10px] text-primary font-medium">Database</div>
-              <div className="text-[8px] text-white/30 mt-1">Metadata only</div>
-            </motion.div>
+              <rect x="170" y="20" width="120" height="80" rx="14" fill="rgba(0,194,255,0.06)" stroke="rgba(0,194,255,0.25)" strokeWidth="1" />
+              {/* Pulsing glow */}
+              <motion.rect
+                x="170" y="20" width="120" height="80" rx="14"
+                fill="none"
+                stroke="rgba(0,194,255,0.15)"
+                strokeWidth="2"
+                animate={{ opacity: [0.3, 0.8, 0.3] }}
+                transition={{ duration: 3, repeat: Infinity }}
+              />
+              <text x="230" y="50" textAnchor="middle" fontSize="20">☁️</text>
+              <text x="230" y="68" textAnchor="middle" fontSize="9" fill="hsl(195 100% 50%)" fontWeight="700">Azure Face API</text>
+              <text x="230" y="82" textAnchor="middle" fontSize="7" fill="rgba(255,255,255,0.3)">Embeddings stored here</text>
+            </motion.g>
 
-            {/* Connector lines with flowing dots */}
-            <svg className="w-full" viewBox="0 0 400 120" fill="none" style={{ marginTop: '80px' }}>
-              <line x1="70" y1="10" x2="160" y2="10" stroke="rgba(255,255,255,0.1)" strokeWidth="1" />
-              <line x1="240" y1="10" x2="330" y2="10" stroke="rgba(255,255,255,0.1)" strokeWidth="1" />
-              <motion.circle
-                cx="0" cy="10" r="2" fill="hsl(195 100% 50%)"
-                animate={{ cx: [70, 160] }}
-                transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
+            {/* ── Database Node ── */}
+            <motion.g
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={inView ? { opacity: 1, scale: 1 } : {}}
+              transition={{ delay: 0.7 }}
+            >
+              <rect x="270" y="140" width="110" height="80" rx="14" fill="rgba(255,107,43,0.06)" stroke="rgba(255,107,43,0.25)" strokeWidth="1" />
+              <motion.rect
+                x="270" y="140" width="110" height="80" rx="14"
+                fill="none"
+                stroke="rgba(255,107,43,0.15)"
+                strokeWidth="2"
+                animate={{ opacity: [0.3, 0.8, 0.3] }}
+                transition={{ duration: 3, repeat: Infinity, delay: 1.5 }}
               />
-              <motion.circle
-                cx="0" cy="10" r="2" fill="hsl(18 100% 58%)"
-                animate={{ cx: [240, 330] }}
-                transition={{ duration: 2, repeat: Infinity, ease: 'linear', delay: 1 }}
-              />
-              <text x="190" y="30" fill="rgba(255,255,255,0.25)" fontSize="8" textAnchor="middle">azure_person_id</text>
-            </svg>
-          </div>
+              <text x="325" y="172" textAnchor="middle" fontSize="20">🗄️</text>
+              <text x="325" y="190" textAnchor="middle" fontSize="9" fill="hsl(18 100% 58%)" fontWeight="700">Database</text>
+              <text x="325" y="204" textAnchor="middle" fontSize="7" fill="rgba(255,255,255,0.3)">Metadata only</text>
+            </motion.g>
+
+            {/* ── Attendance Node ── */}
+            <motion.g
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={inView ? { opacity: 1, scale: 1 } : {}}
+              transition={{ delay: 0.9 }}
+            >
+              <rect x="20" y="170" width="110" height="70" rx="14" fill="rgba(0,229,160,0.06)" stroke="rgba(0,229,160,0.2)" strokeWidth="1" />
+              <text x="75" y="200" textAnchor="middle" fontSize="18">📋</text>
+              <text x="75" y="218" textAnchor="middle" fontSize="8" fill="hsl(160 100% 45%)" fontWeight="600">Records</text>
+              <text x="75" y="230" textAnchor="middle" fontSize="7" fill="rgba(255,255,255,0.3)">CSV / Sheet</text>
+            </motion.g>
+
+            {/* ── Connection Lines ── */}
+            {/* Photo → Azure */}
+            <line x1="130" y1="60" x2="170" y2="60" stroke="rgba(255,255,255,0.08)" strokeWidth="1.5" strokeDasharray="4 3" />
+            {/* Azure → DB */}
+            <path d="M 290 100 C 310 110 330 125 330 140" stroke="rgba(255,255,255,0.08)" strokeWidth="1.5" strokeDasharray="4 3" fill="none" />
+            {/* Photo → Records */}
+            <line x1="75" y1="100" x2="75" y2="170" stroke="rgba(255,255,255,0.08)" strokeWidth="1.5" strokeDasharray="4 3" />
+            {/* DB → Records */}
+            <line x1="270" y1="200" x2="130" y2="200" stroke="rgba(255,255,255,0.08)" strokeWidth="1.5" strokeDasharray="4 3" />
+
+            {/* ── Animated flowing packets ── */}
+            {/* Photo → Azure packets */}
+            {[0, 1.2, 2.4].map((delay, i) => (
+              <React.Fragment key={`pa-${i}`}>
+                <circle r="3" fill="hsl(195 100% 50%)">
+                  <animateMotion dur="2s" repeatCount="indefinite" begin={`${delay}s`}>
+                    <mpath href="#path-photo-azure" />
+                  </animateMotion>
+                </circle>
+                <circle r="1.2" fill="white" opacity="0.8">
+                  <animateMotion dur="2s" repeatCount="indefinite" begin={`${delay}s`}>
+                    <mpath href="#path-photo-azure" />
+                  </animateMotion>
+                </circle>
+              </React.Fragment>
+            ))}
+
+            {/* Azure → DB packets */}
+            {[0.5, 1.8, 3.0].map((delay, i) => (
+              <React.Fragment key={`ad-${i}`}>
+                <circle r="3" fill="hsl(18 100% 58%)">
+                  <animateMotion dur="2.5s" repeatCount="indefinite" begin={`${delay}s`}>
+                    <mpath href="#path-azure-db" />
+                  </animateMotion>
+                </circle>
+                <circle r="1.2" fill="white" opacity="0.8">
+                  <animateMotion dur="2.5s" repeatCount="indefinite" begin={`${delay}s`}>
+                    <mpath href="#path-azure-db" />
+                  </animateMotion>
+                </circle>
+              </React.Fragment>
+            ))}
+
+            {/* Photo → Records packets */}
+            {[0.3, 1.6].map((delay, i) => (
+              <React.Fragment key={`pr-${i}`}>
+                <circle r="2.5" fill="hsl(160 100% 45%)">
+                  <animateMotion dur="2s" repeatCount="indefinite" begin={`${delay}s`}>
+                    <mpath href="#path-photo-down" />
+                  </animateMotion>
+                </circle>
+                <circle r="1" fill="white" opacity="0.8">
+                  <animateMotion dur="2s" repeatCount="indefinite" begin={`${delay}s`}>
+                    <mpath href="#path-photo-down" />
+                  </animateMotion>
+                </circle>
+              </React.Fragment>
+            ))}
+
+            {/* Label on the link */}
+            <text x="230" y="122" textAnchor="middle" fontSize="8" fill="rgba(255,255,255,0.2)" fontStyle="italic">azure_person_id</text>
+          </svg>
         </motion.div>
       </div>
     </section>
