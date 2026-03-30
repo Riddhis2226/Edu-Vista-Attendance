@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Menu, X } from 'lucide-react';
+import eduvistaLogo from '@/assets/eduvista-logo.png';
 
 const navLinks = [
   { label: 'Features', href: '#features' },
@@ -33,11 +34,7 @@ const LandingNavbar: React.FC = () => {
           {/* Logo */}
           <a href="#" className="flex items-center gap-2.5 group">
             <div className="relative">
-              <svg width="32" height="32" viewBox="0 0 32 32" fill="none" className="glow-pulse">
-                <path d="M16 4L4 12V20L16 28L28 20V12L16 4Z" fill="hsl(18 100% 58% / 0.15)" stroke="hsl(18 100% 58%)" strokeWidth="1.5" />
-                <path d="M16 4L4 12L16 20L28 12L16 4Z" fill="hsl(18 100% 58% / 0.3)" />
-                <circle cx="16" cy="10" r="3" fill="hsl(18 100% 58%)" />
-              </svg>
+              <img src={eduvistaLogo} alt="EduVista" className="h-9 w-auto glow-pulse" />
             </div>
             <div className="flex flex-col">
               <span className="text-lg font-extrabold text-foreground tracking-tight">EduVista</span>
