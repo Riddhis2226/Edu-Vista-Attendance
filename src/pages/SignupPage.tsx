@@ -130,7 +130,7 @@ const SignupPage: React.FC = () => {
               </motion.div>
               <p className="text-foreground font-semibold text-lg">Account Created!</p>
               <p className="text-sm text-muted-foreground text-center">
-                Check your email to verify your account, then login.
+                Your account is ready. You can now log in.
               </p>
 
               {/* Next steps preview */}
