@@ -97,10 +97,10 @@ const LoginPage: React.FC = () => {
             />
 
             <div className="flex justify-end">
-              <button type="button" className="text-xs text-muted-foreground hover:text-primary transition-colors relative group">
+              <Link to="/forgot-password" className="text-xs text-muted-foreground hover:text-primary transition-colors relative group">
                 Forgot Password?
                 <span className="absolute bottom-0 left-0 w-full h-px bg-primary scale-x-0 group-hover:scale-x-100 transition-transform origin-left" />
-              </button>
+              </Link>
             </div>
 
             <motion.button
