@@ -182,7 +182,7 @@ const HeroSection: React.FC = () => {
             className="flex flex-wrap gap-4"
           >
             <Link
-              to="/login"
+              to="/signup"
               className="px-6 py-3 bg-gradient-to-r from-primary to-orange-600 text-white font-semibold rounded-lg transition-all duration-300 hover:scale-[1.04] hover:shadow-[0_0_30px_rgba(255,107,43,0.4)] btn-shimmer"
             >
               Get Started Free
