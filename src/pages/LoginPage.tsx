@@ -130,6 +130,29 @@ const LoginPage: React.FC = () => {
           </Link>
         </div>
 
+        {/* Test account quick-fill buttons */}
+        {!success && (
+          <div className="space-y-2">
+            <p className="text-[10px] text-muted-foreground text-center uppercase tracking-wider">Quick Login — Test Accounts</p>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => { setEmail('admin@eduvista.com'); setPassword('Admin123!'); }}
+                className="flex-1 py-2 px-3 rounded-lg text-xs font-medium border border-white/10 bg-white/[0.03] text-muted-foreground hover:border-primary/40 hover:text-primary transition-all duration-200"
+              >
+                🛡️ Testing Admin Account
+              </button>
+              <button
+                type="button"
+                onClick={() => { setEmail('faculty@eduvista.com'); setPassword('Faculty123!'); }}
+                className="flex-1 py-2 px-3 rounded-lg text-xs font-medium border border-white/10 bg-white/[0.03] text-muted-foreground hover:border-secondary/40 hover:text-secondary transition-all duration-200"
+              >
+                📚 Testing Faculty Account
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Trust signals */}
         <div className="flex flex-wrap justify-center gap-4 pt-2">
           {['🔒 Secured Auth', '🤖 AI Powered', '🛡️ No local biometrics'].map((s) => (
