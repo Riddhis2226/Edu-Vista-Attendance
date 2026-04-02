@@ -1,52 +1,70 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Loader2, CheckCircle2 } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { Loader2, CheckCircle2 } from 'lucide-react';
-import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import AuthLayout from '@/layouts/AuthLayout';
 import FloatingInput from '@/components/FloatingInput';
 import eduvistaLogo from '@/assets/eduvista-logo.png';
 
-const LoginPage: React.FC = () => {
-  const [email, setEmail] = useState('');
+const ResetPasswordPage: React.FC = () => {
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState(false);
-  const { signIn, role } = useAuth();
   const navigate = useNavigate();
 
+  // Check for recovery token in URL hash
   useEffect(() => {
-    if (role === 'admin') navigate('/admin');
-    else if (role === 'faculty') navigate('/faculty');
-  }, [role, navigate]);
+    const hash = window.location.hash;
+    if (!hash.includes('type=recovery')) {
+      // No recovery token — user might have navigated here directly
+      // We'll still show the form; supabase.auth.updateUser will fail if no session
+    }
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(false);
-    setLoading(true);
-    const { error: err } = await signIn(email, password);
-    if (err) {
-      setLoading(false);
+
+    if (password.length < 6) {
+      toast.error('Password must be at least 6 characters');
       setError(true);
-      toast.error('Invalid credentials. Please try again.');
+      setTimeout(() => setError(false), 1500);
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      toast.error('Passwords do not match');
+      setError(true);
+      setTimeout(() => setError(false), 1500);
+      return;
+    }
+
+    setLoading(true);
+    const { error: err } = await supabase.auth.updateUser({ password });
+    setLoading(false);
+
+    if (err) {
+      toast.error(err.message);
+      setError(true);
       setTimeout(() => setError(false), 1500);
     } else {
-      setLoading(false);
       setSuccess(true);
+      toast.success('Password updated successfully!');
+      setTimeout(() => navigate('/login'), 2500);
     }
   };
 
   return (
     <AuthLayout>
-      <Link to="/" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-primary transition-colors mb-4">
+      <Link to="/login" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-primary transition-colors mb-4">
         <ArrowLeft className="w-4 h-4" />
-        Back to Home
+        Back to Login
       </Link>
       <div className="glass-card p-8 space-y-6">
-        {/* Header */}
         <div className="text-center space-y-1">
           <motion.img
             src={eduvistaLogo}
@@ -56,8 +74,8 @@ const LoginPage: React.FC = () => {
             animate={{ scale: 1 }}
             transition={{ type: 'spring', stiffness: 200 }}
           />
-          <h1 className="text-2xl font-bold text-foreground">Welcome Back</h1>
-          <p className="text-sm text-muted-foreground">Login to access your dashboard</p>
+          <h1 className="text-2xl font-bold text-foreground">Reset Password</h1>
+          <p className="text-sm text-muted-foreground">Enter your new password below</p>
         </div>
 
         {success ? (
@@ -73,39 +91,33 @@ const LoginPage: React.FC = () => {
             >
               <CheckCircle2 className="w-16 h-16 text-success" />
             </motion.div>
-            <p className="text-foreground font-semibold">Authenticated!</p>
-            <p className="text-sm text-muted-foreground">Redirecting to dashboard…</p>
+            <p className="text-foreground font-semibold">Password Updated!</p>
+            <p className="text-sm text-muted-foreground">Redirecting to login…</p>
           </motion.div>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-4">
             <FloatingInput
-              id="email"
-              label="Email Address"
-              type="email"
-              value={email}
-              onChange={setEmail}
-              error={error}
-            />
-            <FloatingInput
-              id="password"
-              label="Password"
+              id="new-password"
+              label="New Password"
               type="password"
               value={password}
               onChange={setPassword}
               error={error}
               showToggle
             />
-
-            <div className="flex justify-end">
-              <Link to="/forgot-password" className="text-xs text-muted-foreground hover:text-primary transition-colors relative group">
-                Forgot Password?
-                <span className="absolute bottom-0 left-0 w-full h-px bg-primary scale-x-0 group-hover:scale-x-100 transition-transform origin-left" />
-              </Link>
-            </div>
+            <FloatingInput
+              id="confirm-password"
+              label="Confirm Password"
+              type="password"
+              value={confirmPassword}
+              onChange={setConfirmPassword}
+              error={error}
+              showToggle
+            />
 
             <motion.button
               type="submit"
-              disabled={loading}
+              disabled={loading || !password || !confirmPassword}
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
               className="w-full py-3 rounded-xl font-semibold text-primary-foreground bg-gradient-to-r from-primary to-orange-600 btn-shimmer transition-all duration-300 hover:shadow-[0_0_30px_rgba(255,107,43,0.3)] disabled:opacity-60 flex items-center justify-center gap-2"
@@ -113,32 +125,17 @@ const LoginPage: React.FC = () => {
               {loading ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin" />
-                  Authenticating…
+                  Updating…
                 </>
               ) : (
-                'Login'
+                'Update Password'
               )}
             </motion.button>
           </form>
         )}
-
-        {/* Footer */}
-        <div className="text-center text-sm text-muted-foreground">
-          Don't have an account?{' '}
-          <Link to="/signup" className="text-primary hover:text-primary/80 font-medium transition-colors">
-            Sign up →
-          </Link>
-        </div>
-
-        {/* Trust signals */}
-        <div className="flex flex-wrap justify-center gap-4 pt-2">
-          {['🔒 Secured Auth', '🤖 AI Powered', '🛡️ No local biometrics'].map((s) => (
-            <span key={s} className="text-[10px] text-white/30">{s}</span>
-          ))}
-        </div>
       </div>
     </AuthLayout>
   );
 };
 
-export default LoginPage;
+export default ResetPasswordPage;
