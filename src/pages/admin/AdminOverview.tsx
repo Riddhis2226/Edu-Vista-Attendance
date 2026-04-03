@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { Users, UserCog, TrendingUp, Activity } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import StatCard from '@/components/StatCard';
@@ -18,56 +18,115 @@ const AdminOverview = () => {
   const [lowAttendance, setLowAttendance] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const fetchData = async () => {
-      const [studentsRes, facultyRes, sessionsRes, recordsRes] = await Promise.all([
-        supabase.from('students').select('id, branch', { count: 'exact' }),
-        supabase.from('user_roles').select('id', { count: 'exact' }).eq('role', 'faculty'),
-        supabase.from('attendance_sessions').select('*').eq('date', new Date().toISOString().split('T')[0]),
-        supabase.from('attendance_records').select('*'),
-      ]);
+  const fetchData = useCallback(async () => {
+    const today = new Date().toISOString().split('T')[0];
 
-      const totalStudents = studentsRes.count || 0;
-      const totalFaculty = facultyRes.count || 0;
-      const todaySessions = sessionsRes.data || [];
-      const activeSessions = todaySessions.length;
+    const [studentsRes, facultyRes, sessionsRes, allSessionsRes] = await Promise.all([
+      supabase.from('students').select('id, branch', { count: 'exact' }),
+      supabase.from('user_roles').select('id', { count: 'exact' }).eq('role', 'faculty'),
+      supabase.from('attendance_sessions').select('*').eq('date', today),
+      supabase.from('attendance_sessions').select('id, date, total_present, total_absent'),
+    ]);
 
-      const todayPresent = todaySessions.reduce((acc, s) => acc + (s.total_present || 0), 0);
-      const todayTotal = todaySessions.reduce((acc, s) => acc + (s.total_present || 0) + (s.total_absent || 0), 0);
-      const todayPct = todayTotal > 0 ? Math.round((todayPresent / todayTotal) * 100) : 0;
+    const totalStudents = studentsRes.count || 0;
+    const totalFaculty = facultyRes.count || 0;
+    const todaySessions = sessionsRes.data || [];
+    const activeSessions = todaySessions.length;
 
-      setStats({ students: totalStudents, faculty: totalFaculty, todayPct, activeSessions });
+    const todayPresent = todaySessions.reduce((acc, s) => acc + (s.total_present || 0), 0);
+    const todayTotal = todaySessions.reduce((acc, s) => acc + (s.total_present || 0) + (s.total_absent || 0), 0);
+    const todayPct = todayTotal > 0 ? Math.round((todayPresent / todayTotal) * 100) : 0;
 
-      // Generate mock trend data (last 30 days)
-      const trend = Array.from({ length: 30 }, (_, i) => {
-        const d = new Date();
-        d.setDate(d.getDate() - (29 - i));
-        return {
-          date: d.toLocaleDateString('en', { month: 'short', day: 'numeric' }),
-          attendance: Math.round(60 + Math.random() * 35),
-        };
+    setStats({ students: totalStudents, faculty: totalFaculty, todayPct, activeSessions });
+
+    // Build 30-day trend from real session data
+    const allSessions = allSessionsRes.data || [];
+    const dailyMap = new Map<string, { present: number; total: number }>();
+    allSessions.forEach(s => {
+      const d = s.date;
+      if (!dailyMap.has(d)) dailyMap.set(d, { present: 0, total: 0 });
+      const entry = dailyMap.get(d)!;
+      entry.present += s.total_present || 0;
+      entry.total += (s.total_present || 0) + (s.total_absent || 0);
+    });
+
+    const trend: any[] = [];
+    for (let i = 29; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      const key = d.toISOString().split('T')[0];
+      const entry = dailyMap.get(key);
+      trend.push({
+        date: d.toLocaleDateString('en', { month: 'short', day: 'numeric' }),
+        attendance: entry && entry.total > 0 ? Math.round((entry.present / entry.total) * 100) : null,
       });
-      setTrendData(trend);
+    }
+    setTrendData(trend);
 
-      // Department-wise
-      const branches = ['CSE', 'ECE', 'ME', 'CE', 'EE'];
-      setDeptData(branches.map(b => ({ branch: b, attendance: Math.round(65 + Math.random() * 30) })));
+    // Department/branch-wise attendance from real student + record data
+    const students = studentsRes.data || [];
+    const branchSet = new Set(students.map(s => s.branch).filter(Boolean));
 
-      // Low attendance students
+    if (branchSet.size > 0) {
+      // Get all records
+      const { data: records } = await supabase.from('attendance_records').select('student_id, status');
+      if (records && records.length > 0) {
+        const studentBranchMap = new Map<string, string>();
+        students.forEach(s => { if (s.branch) studentBranchMap.set(s.id, s.branch); });
+
+        const branchStats = new Map<string, { present: number; total: number }>();
+        records.forEach(r => {
+          const branch = studentBranchMap.get(r.student_id);
+          if (!branch) return;
+          if (!branchStats.has(branch)) branchStats.set(branch, { present: 0, total: 0 });
+          const entry = branchStats.get(branch)!;
+          entry.total++;
+          if (r.status === 'present') entry.present++;
+        });
+
+        setDeptData(Array.from(branchStats.entries()).map(([branch, s]) => ({
+          branch,
+          attendance: s.total > 0 ? Math.round((s.present / s.total) * 100) : 0,
+        })));
+      } else {
+        setDeptData([]);
+      }
+    } else {
+      setDeptData([]);
+    }
+
+    // Low attendance students (< 75%)
+    const { data: allRecords } = await supabase.from('attendance_records').select('student_id, student_name, enrollment_no, status');
+    if (allRecords && allRecords.length > 0) {
+      const studentMap = new Map<string, { name: string; eno: string; present: number; total: number }>();
+      allRecords.forEach(r => {
+        if (!studentMap.has(r.student_id)) studentMap.set(r.student_id, { name: r.student_name, eno: r.enrollment_no, present: 0, total: 0 });
+        const entry = studentMap.get(r.student_id)!;
+        entry.total++;
+        if (r.status === 'present') entry.present++;
+      });
+      const low = Array.from(studentMap.entries())
+        .map(([id, s]) => ({ id, full_name: s.name, enrollment_no: s.eno, pct: Math.round((s.present / s.total) * 100) }))
+        .filter(s => s.pct < 75)
+        .sort((a, b) => a.pct - b.pct);
+      setLowAttendance(low);
+    } else {
       setLowAttendance([]);
-      setLoading(false);
-    };
+    }
+
+    setLoading(false);
+  }, []);
+
+  useEffect(() => {
     fetchData();
 
-    // Real-time subscription
     const channel = supabase.channel('admin-overview')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'attendance_records' }, () => {
-        fetchData();
-      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'attendance_records' }, () => fetchData())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'attendance_sessions' }, () => fetchData())
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
-  }, []);
+  }, [fetchData]);
 
   return (
     <div className="space-y-6">
@@ -87,15 +146,19 @@ const AdminOverview = () => {
           <Card className="glass-card">
             <CardHeader><CardTitle className="text-base">30-Day Attendance Trend</CardTitle></CardHeader>
             <CardContent>
-              <ResponsiveContainer width="100%" height={250}>
-                <LineChart data={trendData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(217 30% 20%)" />
-                  <XAxis dataKey="date" tick={{ fill: 'hsl(218 25% 50%)', fontSize: 11 }} />
-                  <YAxis tick={{ fill: 'hsl(218 25% 50%)', fontSize: 11 }} />
-                  <Tooltip contentStyle={{ background: 'hsl(217 45% 16%)', border: '1px solid hsl(18 100% 58% / 0.2)', borderRadius: 8, color: '#fff' }} />
-                  <Line type="monotone" dataKey="attendance" stroke="hsl(18, 100%, 58%)" strokeWidth={2} dot={false} animationDuration={1500} />
-                </LineChart>
-              </ResponsiveContainer>
+              {trendData.some(d => d.attendance !== null) ? (
+                <ResponsiveContainer width="100%" height={250}>
+                  <LineChart data={trendData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(217 30% 20%)" />
+                    <XAxis dataKey="date" tick={{ fill: 'hsl(218 25% 50%)', fontSize: 11 }} />
+                    <YAxis tick={{ fill: 'hsl(218 25% 50%)', fontSize: 11 }} />
+                    <Tooltip contentStyle={{ background: 'hsl(217 45% 16%)', border: '1px solid hsl(18 100% 58% / 0.2)', borderRadius: 8, color: '#fff' }} />
+                    <Line type="monotone" dataKey="attendance" stroke="hsl(18, 100%, 58%)" strokeWidth={2} dot={false} connectNulls animationDuration={1500} />
+                  </LineChart>
+                </ResponsiveContainer>
+              ) : (
+                <EmptyState message="No attendance data yet" />
+              )}
             </CardContent>
           </Card>
         </motion.div>
@@ -104,15 +167,19 @@ const AdminOverview = () => {
           <Card className="glass-card">
             <CardHeader><CardTitle className="text-base">Department-wise Attendance</CardTitle></CardHeader>
             <CardContent>
-              <ResponsiveContainer width="100%" height={250}>
-                <BarChart data={deptData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(217 30% 20%)" />
-                  <XAxis dataKey="branch" tick={{ fill: 'hsl(218 25% 50%)', fontSize: 11 }} />
-                  <YAxis tick={{ fill: 'hsl(218 25% 50%)', fontSize: 11 }} />
-                  <Tooltip contentStyle={{ background: 'hsl(217 45% 16%)', border: '1px solid hsl(18 100% 58% / 0.2)', borderRadius: 8, color: '#fff' }} />
-                  <Bar dataKey="attendance" fill="hsl(195, 100%, 50%)" radius={[4, 4, 0, 0]} animationDuration={1200} />
-                </BarChart>
-              </ResponsiveContainer>
+              {deptData.length > 0 ? (
+                <ResponsiveContainer width="100%" height={250}>
+                  <BarChart data={deptData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(217 30% 20%)" />
+                    <XAxis dataKey="branch" tick={{ fill: 'hsl(218 25% 50%)', fontSize: 11 }} />
+                    <YAxis tick={{ fill: 'hsl(218 25% 50%)', fontSize: 11 }} />
+                    <Tooltip contentStyle={{ background: 'hsl(217 45% 16%)', border: '1px solid hsl(18 100% 58% / 0.2)', borderRadius: 8, color: '#fff' }} />
+                    <Bar dataKey="attendance" fill="hsl(195, 100%, 50%)" radius={[4, 4, 0, 0]} animationDuration={1200} />
+                  </BarChart>
+                </ResponsiveContainer>
+              ) : (
+                <EmptyState message="No department data yet" />
+              )}
             </CardContent>
           </Card>
         </motion.div>
@@ -129,7 +196,7 @@ const AdminOverview = () => {
                 {lowAttendance.map((s: any) => (
                   <div key={s.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/30">
                     <span>{s.full_name} — {s.enrollment_no}</span>
-                    <Badge variant="destructive" className="pulse-badge">Below 75%</Badge>
+                    <Badge variant="destructive" className="pulse-badge">{s.pct}%</Badge>
                   </div>
                 ))}
               </div>
