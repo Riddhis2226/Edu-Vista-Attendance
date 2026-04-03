@@ -127,12 +127,56 @@ const StudentManagement = () => {
     fetchFilterOptions();
   };
 
+  const TARGET_FIELDS = ['enrollment_no', 'full_name', 'program', 'semester', 'section', 'school_institute', 'batch'] as const;
+
+  const FIELD_LABELS: Record<string, string> = {
+    enrollment_no: 'Enrollment No',
+    full_name: 'Name',
+    program: 'Program',
+    semester: 'Semester',
+    section: 'Section',
+    school_institute: 'School/Institute',
+    batch: 'Batch',
+  };
+
+  const autoDetectColumn = (col: string): string => {
+    const c = col.toLowerCase().trim();
+    if (c.includes('enrollment') || c.includes('enroll') || c === 'eno' || c === 'roll') return 'enrollment_no';
+    if (c === 'name' || c === 'full name' || c === 'student name' || c === 'full_name') return 'full_name';
+    if (c === 'program' || c === 'programme' || c === 'course') return 'program';
+    if (c === 'semester' || c === 'sem') return 'semester';
+    if (c === 'section' || c === 'sec') return 'section';
+    if (c.includes('school') || c.includes('institute') || c === 'college') return 'school_institute';
+    if (c === 'batch' || c === 'year' || c === 'intake') return 'batch';
+    return '';
+  };
+
+  const onFileLoaded = (data: any[]) => {
+    if (data.length === 0) {
+      toast.error('No data found in file');
+      return;
+    }
+    const cols = Object.keys(data[0]);
+    setCsvColumns(cols);
+    setCsvData(data);
+
+    // Auto-detect column mapping
+    const map: Record<string, string> = {};
+    cols.forEach(col => {
+      const detected = autoDetectColumn(col);
+      if (detected && !Object.values(map).includes(detected)) {
+        map[col] = detected;
+      }
+    });
+    setColumnMap(map);
+  };
+
   const parseFile = useCallback((file: File) => {
     const ext = file.name.split('.').pop()?.toLowerCase();
     if (ext === 'csv') {
       Papa.parse(file, {
         header: true, skipEmptyLines: true,
-        complete: (results) => setCsvData(results.data),
+        complete: (results) => onFileLoaded(results.data),
         error: () => toast.error('Failed to parse CSV file'),
       });
     } else if (ext === 'xlsx' || ext === 'xls') {
@@ -142,7 +186,7 @@ const StudentManagement = () => {
           const wb = XLSX.read(e.target?.result, { type: 'array' });
           const sheet = wb.Sheets[wb.SheetNames[0]];
           const data = XLSX.utils.sheet_to_json(sheet, { defval: '' });
-          setCsvData(data);
+          onFileLoaded(data);
         } catch {
           toast.error('Failed to parse Excel file');
         }
@@ -169,23 +213,36 @@ const StudentManagement = () => {
     maxFiles: 1,
   });
 
-  const mapRow = (r: any) => ({
-    enrollment_no: (r['Enrollment No'] || r['Enrollment No.'] || r['enrollment_no'] || r['EnrollmentNo'] || '').toString().trim(),
-    full_name: (r['Name'] || r['Full Name'] || r['full_name'] || r['Student Name'] || '').toString().trim(),
-    program: (r['Program'] || r['program'] || '').toString().trim() || null,
-    semester: (r['Semester'] || r['semester'] || '').toString().trim() || null,
-    section: (r['Section'] || r['section'] || '').toString().trim() || null,
-    school_institute: (r['School/Institute'] || r['School'] || r['Institute'] || r['school_institute'] || '').toString().trim() || null,
-    batch: (r['Batch'] || r['batch'] || '').toString().trim() || null,
-  });
+  const getReversedMap = () => {
+    const reversed: Record<string, string> = {};
+    Object.entries(columnMap).forEach(([fileCol, field]) => {
+      if (field) reversed[field] = fileCol;
+    });
+    return reversed;
+  };
 
   const handleCsvImport = async () => {
+    const reversed = getReversedMap();
+    if (!reversed.enrollment_no || !reversed.full_name) {
+      toast.error('Please map at least "Enrollment No" and "Name" columns');
+      return;
+    }
+
     setCsvUploading(true);
     setCsvProgress(0);
 
-    const rows = csvData.map(mapRow).filter(r => r.enrollment_no && r.full_name);
+    const rows = csvData.map(r => ({
+      enrollment_no: (r[reversed.enrollment_no] || '').toString().trim(),
+      full_name: (r[reversed.full_name] || '').toString().trim(),
+      program: reversed.program ? (r[reversed.program] || '').toString().trim() || null : null,
+      semester: reversed.semester ? (r[reversed.semester] || '').toString().trim() || null : null,
+      section: reversed.section ? (r[reversed.section] || '').toString().trim() || null : null,
+      school_institute: reversed.school_institute ? (r[reversed.school_institute] || '').toString().trim() || null : null,
+      batch: reversed.batch ? (r[reversed.batch] || '').toString().trim() || null : null,
+    })).filter(r => r.enrollment_no && r.full_name);
+
     if (rows.length === 0) {
-      toast.error('No valid rows found. Ensure columns match: Enrollment No, Name, Program, Semester, Section, School/Institute, Batch');
+      toast.error('No valid rows found after mapping. Check your column selections.');
       setCsvUploading(false);
       return;
     }
@@ -214,6 +271,8 @@ const StudentManagement = () => {
     setCsvUploading(false);
     setCsvOpen(false);
     setCsvData([]);
+    setCsvColumns([]);
+    setColumnMap({});
     fetchStudents();
     fetchFilterOptions();
   };
