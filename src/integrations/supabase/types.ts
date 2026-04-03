@@ -101,6 +101,7 @@ export type Database = {
       students: {
         Row: {
           azure_person_id: string | null
+          batch: string | null
           branch: string | null
           created_at: string
           email: string | null
@@ -109,10 +110,15 @@ export type Database = {
           face_image_url: string | null
           full_name: string
           id: string
+          program: string | null
+          school_institute: string | null
+          section: string | null
+          semester: string | null
           year: number | null
         }
         Insert: {
           azure_person_id?: string | null
+          batch?: string | null
           branch?: string | null
           created_at?: string
           email?: string | null
@@ -121,10 +127,15 @@ export type Database = {
           face_image_url?: string | null
           full_name: string
           id?: string
+          program?: string | null
+          school_institute?: string | null
+          section?: string | null
+          semester?: string | null
           year?: number | null
         }
         Update: {
           azure_person_id?: string | null
+          batch?: string | null
           branch?: string | null
           created_at?: string
           email?: string | null
@@ -133,6 +144,10 @@ export type Database = {
           face_image_url?: string | null
           full_name?: string
           id?: string
+          program?: string | null
+          school_institute?: string | null
+          section?: string | null
+          semester?: string | null
           year?: number | null
         }
         Relationships: []
