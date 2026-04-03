@@ -60,6 +60,8 @@ const StudentManagement = () => {
 
   // CSV state
   const [csvData, setCsvData] = useState<any[]>([]);
+  const [csvColumns, setCsvColumns] = useState<string[]>([]);
+  const [columnMap, setColumnMap] = useState<Record<string, string>>({});
   const [csvUploading, setCsvUploading] = useState(false);
   const [csvProgress, setCsvProgress] = useState(0);
 
@@ -125,12 +127,56 @@ const StudentManagement = () => {
     fetchFilterOptions();
   };
 
+  const TARGET_FIELDS = ['enrollment_no', 'full_name', 'program', 'semester', 'section', 'school_institute', 'batch'] as const;
+
+  const FIELD_LABELS: Record<string, string> = {
+    enrollment_no: 'Enrollment No',
+    full_name: 'Name',
+    program: 'Program',
+    semester: 'Semester',
+    section: 'Section',
+    school_institute: 'School/Institute',
+    batch: 'Batch',
+  };
+
+  const autoDetectColumn = (col: string): string => {
+    const c = col.toLowerCase().trim();
+    if (c.includes('enrollment') || c.includes('enroll') || c === 'eno' || c === 'roll') return 'enrollment_no';
+    if (c === 'name' || c === 'full name' || c === 'student name' || c === 'full_name') return 'full_name';
+    if (c === 'program' || c === 'programme' || c === 'course') return 'program';
+    if (c === 'semester' || c === 'sem') return 'semester';
+    if (c === 'section' || c === 'sec') return 'section';
+    if (c.includes('school') || c.includes('institute') || c === 'college') return 'school_institute';
+    if (c === 'batch' || c === 'year' || c === 'intake') return 'batch';
+    return '';
+  };
+
+  const onFileLoaded = (data: any[]) => {
+    if (data.length === 0) {
+      toast.error('No data found in file');
+      return;
+    }
+    const cols = Object.keys(data[0]);
+    setCsvColumns(cols);
+    setCsvData(data);
+
+    // Auto-detect column mapping
+    const map: Record<string, string> = {};
+    cols.forEach(col => {
+      const detected = autoDetectColumn(col);
+      if (detected && !Object.values(map).includes(detected)) {
+        map[col] = detected;
+      }
+    });
+    setColumnMap(map);
+  };
+
   const parseFile = useCallback((file: File) => {
     const ext = file.name.split('.').pop()?.toLowerCase();
     if (ext === 'csv') {
       Papa.parse(file, {
         header: true, skipEmptyLines: true,
-        complete: (results) => setCsvData(results.data),
+        complete: (results) => onFileLoaded(results.data),
         error: () => toast.error('Failed to parse CSV file'),
       });
     } else if (ext === 'xlsx' || ext === 'xls') {
@@ -140,7 +186,7 @@ const StudentManagement = () => {
           const wb = XLSX.read(e.target?.result, { type: 'array' });
           const sheet = wb.Sheets[wb.SheetNames[0]];
           const data = XLSX.utils.sheet_to_json(sheet, { defval: '' });
-          setCsvData(data);
+          onFileLoaded(data);
         } catch {
           toast.error('Failed to parse Excel file');
         }
@@ -167,23 +213,36 @@ const StudentManagement = () => {
     maxFiles: 1,
   });
 
-  const mapRow = (r: any) => ({
-    enrollment_no: (r['Enrollment No'] || r['Enrollment No.'] || r['enrollment_no'] || r['EnrollmentNo'] || '').toString().trim(),
-    full_name: (r['Name'] || r['Full Name'] || r['full_name'] || r['Student Name'] || '').toString().trim(),
-    program: (r['Program'] || r['program'] || '').toString().trim() || null,
-    semester: (r['Semester'] || r['semester'] || '').toString().trim() || null,
-    section: (r['Section'] || r['section'] || '').toString().trim() || null,
-    school_institute: (r['School/Institute'] || r['School'] || r['Institute'] || r['school_institute'] || '').toString().trim() || null,
-    batch: (r['Batch'] || r['batch'] || '').toString().trim() || null,
-  });
+  const getReversedMap = () => {
+    const reversed: Record<string, string> = {};
+    Object.entries(columnMap).forEach(([fileCol, field]) => {
+      if (field) reversed[field] = fileCol;
+    });
+    return reversed;
+  };
 
   const handleCsvImport = async () => {
+    const reversed = getReversedMap();
+    if (!reversed.enrollment_no || !reversed.full_name) {
+      toast.error('Please map at least "Enrollment No" and "Name" columns');
+      return;
+    }
+
     setCsvUploading(true);
     setCsvProgress(0);
 
-    const rows = csvData.map(mapRow).filter(r => r.enrollment_no && r.full_name);
+    const rows = csvData.map(r => ({
+      enrollment_no: (r[reversed.enrollment_no] || '').toString().trim(),
+      full_name: (r[reversed.full_name] || '').toString().trim(),
+      program: reversed.program ? (r[reversed.program] || '').toString().trim() || null : null,
+      semester: reversed.semester ? (r[reversed.semester] || '').toString().trim() || null : null,
+      section: reversed.section ? (r[reversed.section] || '').toString().trim() || null : null,
+      school_institute: reversed.school_institute ? (r[reversed.school_institute] || '').toString().trim() || null : null,
+      batch: reversed.batch ? (r[reversed.batch] || '').toString().trim() || null : null,
+    })).filter(r => r.enrollment_no && r.full_name);
+
     if (rows.length === 0) {
-      toast.error('No valid rows found. Ensure columns match: Enrollment No, Name, Program, Semester, Section, School/Institute, Batch');
+      toast.error('No valid rows found after mapping. Check your column selections.');
       setCsvUploading(false);
       return;
     }
@@ -212,6 +271,8 @@ const StudentManagement = () => {
     setCsvUploading(false);
     setCsvOpen(false);
     setCsvData([]);
+    setCsvColumns([]);
+    setColumnMap({});
     fetchStudents();
     fetchFilterOptions();
   };
@@ -376,36 +437,97 @@ const StudentManagement = () => {
       </Dialog>
 
       {/* File Upload Modal */}
-      <Dialog open={csvOpen} onOpenChange={setCsvOpen}>
-        <DialogContent className="glass-card max-w-xl">
+      <Dialog open={csvOpen} onOpenChange={(o) => { setCsvOpen(o); if (!o) { setCsvData([]); setCsvColumns([]); setColumnMap({}); } }}>
+        <DialogContent className="glass-card max-w-2xl">
           <DialogHeader><DialogTitle>Bulk Student Upload</DialogTitle></DialogHeader>
-          <p className="text-xs text-muted-foreground">Supports <strong>CSV</strong> and <strong>Excel (.xlsx/.xls)</strong> files. Expected columns: <strong>Enrollment No, Name, Program, Semester, Section, School/Institute, Batch</strong></p>
-          <div {...csvRootProps()} className={`border-2 border-dashed rounded-xl p-10 text-center cursor-pointer transition-all ${csvDragActive ? 'border-success bg-success/10 drag-zone-active' : 'border-border hover:border-primary/50'}`}>
-            <input {...csvInputProps()} />
-            <Upload className="h-10 w-10 mx-auto mb-3 text-muted-foreground" />
-            <p className="text-muted-foreground">Drop a CSV or Excel file here, or click to browse</p>
-          </div>
-          {csvData.length > 0 && (
-            <div className="mt-4 space-y-3">
-              <p className="text-sm text-muted-foreground">{csvData.length} rows detected</p>
-              <div className="max-h-40 overflow-auto rounded border border-border">
+          <p className="text-xs text-muted-foreground">Supports <strong>CSV</strong> and <strong>Excel (.xlsx/.xls)</strong> files.</p>
+
+          {csvData.length === 0 ? (
+            <div {...csvRootProps()} className={`border-2 border-dashed rounded-xl p-10 text-center cursor-pointer transition-all ${csvDragActive ? 'border-success bg-success/10 drag-zone-active' : 'border-border hover:border-primary/50'}`}>
+              <input {...csvInputProps()} />
+              <Upload className="h-10 w-10 mx-auto mb-3 text-muted-foreground" />
+              <p className="text-muted-foreground">Drop a CSV or Excel file here, or click to browse</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <p className="text-sm text-muted-foreground">{csvData.length} rows detected. Map your file columns below:</p>
+
+              {/* Column Mapping */}
+              <div className="grid grid-cols-2 gap-3">
+                {TARGET_FIELDS.map(field => {
+                  const currentFileCol = Object.entries(columnMap).find(([, f]) => f === field)?.[0] || '';
+                  return (
+                    <div key={field} className="flex items-center gap-2">
+                      <Label className="text-xs w-28 shrink-0">
+                        {FIELD_LABELS[field]}
+                        {(field === 'enrollment_no' || field === 'full_name') && <span className="text-destructive ml-0.5">*</span>}
+                      </Label>
+                      <Select
+                        value={currentFileCol || '__none__'}
+                        onValueChange={(v) => {
+                          setColumnMap(prev => {
+                            const next = { ...prev };
+                            // Remove previous mapping for this field
+                            Object.keys(next).forEach(k => { if (next[k] === field) delete next[k]; });
+                            if (v !== '__none__') next[v] = field;
+                            return next;
+                          });
+                        }}
+                      >
+                        <SelectTrigger className="bg-muted/30 h-8 text-xs">
+                          <SelectValue placeholder="Select column" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="__none__">— Skip —</SelectItem>
+                          {csvColumns.map(col => (
+                            <SelectItem key={col} value={col}>{col}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Preview */}
+              <div className="max-h-36 overflow-auto rounded border border-border">
                 <Table>
-                  <TableHeader><TableRow>{Object.keys(csvData[0]).map(k => <TableHead key={k}>{k}</TableHead>)}</TableRow></TableHeader>
+                  <TableHeader>
+                    <TableRow>
+                      {csvColumns.map(k => (
+                        <TableHead key={k} className="text-xs">
+                          {k}
+                          {columnMap[k] && <span className="block text-[10px] text-primary font-normal">→ {FIELD_LABELS[columnMap[k]]}</span>}
+                        </TableHead>
+                      ))}
+                    </TableRow>
+                  </TableHeader>
                   <TableBody>
-                    {csvData.slice(0, 5).map((row: any, i: number) => (
-                      <TableRow key={i}>{Object.values(row).map((v: any, j) => <TableCell key={j}>{v}</TableCell>)}</TableRow>
+                    {csvData.slice(0, 3).map((row: any, i: number) => (
+                      <TableRow key={i}>{csvColumns.map((col) => <TableCell key={col} className="text-xs">{row[col]}</TableCell>)}</TableRow>
                     ))}
                   </TableBody>
                 </Table>
               </div>
+
               {csvUploading && (
                 <div className="w-full bg-muted rounded-full h-2 overflow-hidden">
                   <motion.div className="h-full bg-primary rounded-full" initial={{ width: 0 }} animate={{ width: `${csvProgress}%` }} transition={{ duration: 0.3 }} />
                 </div>
               )}
-              <Button onClick={handleCsvImport} disabled={csvUploading} className="w-full btn-shimmer">
-                {csvUploading ? <><Loader2 className="h-4 w-4 animate-spin mr-2" />Importing {csvProgress}%</> : `Import ${csvData.length} Students`}
-              </Button>
+
+              <div className="flex gap-2">
+                <Button variant="outline" onClick={() => { setCsvData([]); setCsvColumns([]); setColumnMap({}); }} className="flex-1">
+                  Re-upload
+                </Button>
+                <Button
+                  onClick={handleCsvImport}
+                  disabled={csvUploading || !Object.values(columnMap).includes('enrollment_no') || !Object.values(columnMap).includes('full_name')}
+                  className="flex-1 btn-shimmer"
+                >
+                  {csvUploading ? <><Loader2 className="h-4 w-4 animate-spin mr-2" />Importing {csvProgress}%</> : `Import ${csvData.length} Students`}
+                </Button>
+              </div>
             </div>
           )}
         </DialogContent>
