@@ -233,7 +233,7 @@ const StudentManagement = () => {
     setCsvUploading(true);
     setCsvProgress(0);
 
-    const rows = csvData.map(r => ({
+    const parsedRows = csvData.map(r => ({
       enrollment_no: (r[reversed.enrollment_no] || '').toString().trim(),
       full_name: (r[reversed.full_name] || '').toString().trim(),
       program: reversed.program ? (r[reversed.program] || '').toString().trim() || null : null,
@@ -243,14 +243,27 @@ const StudentManagement = () => {
       batch: reversed.batch ? (r[reversed.batch] || '').toString().trim() || null : null,
     })).filter(r => r.enrollment_no && r.full_name);
 
-    if (rows.length === 0) {
+    if (parsedRows.length === 0) {
       toast.error('No valid rows found after mapping. Check your column selections.');
       setCsvUploading(false);
       return;
     }
 
+    const uniqueRows = new Map<string, (typeof parsedRows)[number]>();
+    let duplicateCount = 0;
+
+    parsedRows.forEach((row) => {
+      if (uniqueRows.has(row.enrollment_no)) {
+        duplicateCount += 1;
+        return;
+      }
+      uniqueRows.set(row.enrollment_no, row);
+    });
+
+    const rows = Array.from(uniqueRows.values());
     let imported = 0;
     let errors = 0;
+    let lastErrorMessage = '';
     const batchSize = 50;
 
     for (let i = 0; i < rows.length; i += batchSize) {
@@ -258,6 +271,7 @@ const StudentManagement = () => {
       const { error } = await supabase.from('students').upsert(batch, { onConflict: 'enrollment_no' });
       if (error) {
         errors += batch.length;
+        lastErrorMessage = error.message;
         console.error('Batch import error:', error.message);
       } else {
         imported += batch.length;
@@ -266,7 +280,9 @@ const StudentManagement = () => {
     }
 
     if (errors > 0) {
-      toast.warning(`Imported ${imported} students. ${errors} rows had errors.`);
+      toast.warning(`Imported ${imported} unique students. ${duplicateCount > 0 ? `${duplicateCount} duplicate rows were skipped. ` : ''}${errors} rows had errors.${lastErrorMessage ? ` ${lastErrorMessage}` : ''}`);
+    } else if (duplicateCount > 0) {
+      toast.success(`${imported} unique students imported successfully. ${duplicateCount} duplicate rows were skipped because enrollment numbers must be unique.`);
     } else {
       toast.success(`${imported} students imported successfully!`);
     }
