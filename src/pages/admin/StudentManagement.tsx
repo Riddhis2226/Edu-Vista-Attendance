@@ -15,6 +15,7 @@ import TypewriterText from '@/components/TypewriterText';
 import SkeletonTable from '@/components/SkeletonTable';
 import EmptyState from '@/components/EmptyState';
 import Papa from 'papaparse';
+import * as XLSX from 'xlsx';
 import { useDropzone } from 'react-dropzone';
 
 interface Student {
