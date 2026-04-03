@@ -375,15 +375,15 @@ const StudentManagement = () => {
         </DialogContent>
       </Dialog>
 
-      {/* CSV Upload Modal */}
+      {/* File Upload Modal */}
       <Dialog open={csvOpen} onOpenChange={setCsvOpen}>
         <DialogContent className="glass-card max-w-xl">
-          <DialogHeader><DialogTitle>Bulk CSV Upload</DialogTitle></DialogHeader>
-          <p className="text-xs text-muted-foreground">Expected columns: <strong>Enrollment No, Name, Program, Semester, Section, School/Institute, Batch</strong></p>
+          <DialogHeader><DialogTitle>Bulk Student Upload</DialogTitle></DialogHeader>
+          <p className="text-xs text-muted-foreground">Supports <strong>CSV</strong> and <strong>Excel (.xlsx/.xls)</strong> files. Expected columns: <strong>Enrollment No, Name, Program, Semester, Section, School/Institute, Batch</strong></p>
           <div {...csvRootProps()} className={`border-2 border-dashed rounded-xl p-10 text-center cursor-pointer transition-all ${csvDragActive ? 'border-success bg-success/10 drag-zone-active' : 'border-border hover:border-primary/50'}`}>
             <input {...csvInputProps()} />
             <Upload className="h-10 w-10 mx-auto mb-3 text-muted-foreground" />
-            <p className="text-muted-foreground">Drop a CSV file here or click to browse</p>
+            <p className="text-muted-foreground">Drop a CSV or Excel file here, or click to browse</p>
           </div>
           {csvData.length > 0 && (
             <div className="mt-4 space-y-3">
