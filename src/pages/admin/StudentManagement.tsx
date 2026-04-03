@@ -60,6 +60,8 @@ const StudentManagement = () => {
 
   // CSV state
   const [csvData, setCsvData] = useState<any[]>([]);
+  const [csvColumns, setCsvColumns] = useState<string[]>([]);
+  const [columnMap, setColumnMap] = useState<Record<string, string>>({});
   const [csvUploading, setCsvUploading] = useState(false);
   const [csvProgress, setCsvProgress] = useState(0);
 
