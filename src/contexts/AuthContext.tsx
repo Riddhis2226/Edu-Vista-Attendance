@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -24,23 +24,31 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [userName, setUserName] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const fetchRole = async (userId: string) => {
-    const { data } = await supabase
-      .from('user_roles')
-      .select('role, name')
-      .eq('user_id', userId)
-      .single();
-    if (data) {
-      setRole(data.role as AppRole);
-      setUserName(data.name);
+  const fetchRole = useCallback(async (userId: string, retries = 5): Promise<void> => {
+    for (let i = 0; i < retries; i++) {
+      const { data } = await supabase
+        .from('user_roles')
+        .select('role, name')
+        .eq('user_id', userId)
+        .single();
+      if (data) {
+        setRole(data.role as AppRole);
+        setUserName(data.name);
+        return;
+      }
+      // Wait before retry — the trigger may not have completed yet
+      if (i < retries - 1) {
+        await new Promise(r => setTimeout(r, 500));
+      }
     }
-  };
+  }, []);
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) {
+        // Use setTimeout to avoid Supabase auth deadlock
         setTimeout(() => fetchRole(session.user.id), 0);
       } else {
         setRole(null);
@@ -59,7 +67,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
 
     return () => subscription.unsubscribe();
-  }, []);
+  }, [fetchRole]);
 
   const signIn = async (email: string, password: string) => {
     const { error } = await supabase.auth.signInWithPassword({ email, password });
@@ -67,20 +75,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const signUp = async (email: string, password: string, name: string, role: 'admin' | 'faculty') => {
-    const { data, error } = await supabase.auth.signUp({
+    const { error } = await supabase.auth.signUp({
       email,
       password,
-      options: { emailRedirectTo: window.location.origin },
+      options: {
+        emailRedirectTo: window.location.origin,
+        data: { role, name },
+      },
     });
     if (error) return { error: error as Error | null };
-    if (data.user) {
-      await supabase.from('user_roles').insert({
-        user_id: data.user.id,
-        email,
-        name,
-        role,
-      });
-    }
+    // The handle_new_user trigger creates the user_roles row from metadata.
+    // fetchRole will be called by onAuthStateChange with retry logic.
     return { error: null };
   };
 

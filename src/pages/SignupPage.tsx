@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -58,12 +58,21 @@ const SignupPage: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPw, setConfirmPw] = useState('');
-  const [role, setRole] = useState<'admin' | 'faculty'>('faculty');
+  const [selectedRole, setSelectedRole] = useState<'admin' | 'faculty'>('faculty');
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [fieldError, setFieldError] = useState(false);
-  const { signUp } = useAuth();
+  const { signUp, role: authRole, user } = useAuth();
   const navigate = useNavigate();
+
+  // Auto-redirect once role is resolved after signup
+  useEffect(() => {
+    if (success && user && authRole) {
+      const target = authRole === 'admin' ? '/admin' : '/faculty';
+      const timer = setTimeout(() => navigate(target, { replace: true }), 1200);
+      return () => clearTimeout(timer);
+    }
+  }, [success, user, authRole, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -81,7 +90,7 @@ const SignupPage: React.FC = () => {
     }
     setFieldError(false);
     setLoading(true);
-    const { error } = await signUp(email, password, name, role);
+    const { error } = await signUp(email, password, name, selectedRole);
     setLoading(false);
     if (error) {
       setFieldError(true);
@@ -89,6 +98,7 @@ const SignupPage: React.FC = () => {
       setTimeout(() => setFieldError(false), 1500);
     } else {
       setSuccess(true);
+      toast.success('Account created! Redirecting to dashboard…');
     }
   };
 
@@ -130,40 +140,12 @@ const SignupPage: React.FC = () => {
               </motion.div>
               <p className="text-foreground font-semibold text-lg">Account Created!</p>
               <p className="text-sm text-muted-foreground text-center">
-                Your account is ready. You can now log in.
+                Redirecting to your {selectedRole === 'admin' ? 'Admin' : 'Faculty'} dashboard…
               </p>
-
-              {/* Next steps preview */}
-              <div className="flex items-center gap-3 pt-4">
-                {[
-                  { icon: '📂', label: 'Upload CSV' },
-                  { icon: '🤖', label: 'Enroll Faces' },
-                  { icon: '✅', label: 'Start Attendance' },
-                ].map((step, i) => (
-                  <React.Fragment key={step.label}>
-                    {i > 0 && <div className="w-6 h-px bg-white/10" />}
-                    <motion.div
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.5 + i * 0.2 }}
-                      className="flex flex-col items-center gap-1"
-                    >
-                      <span className="text-lg">{step.icon}</span>
-                      <span className="text-[9px] text-white/40">{step.label}</span>
-                    </motion.div>
-                  </React.Fragment>
-                ))}
+              <div className="flex items-center gap-2 mt-2">
+                <Loader2 className="w-4 h-4 animate-spin text-primary" />
+                <span className="text-xs text-muted-foreground">Setting up your workspace</span>
               </div>
-
-              <motion.button
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 1.2 }}
-                onClick={() => navigate('/login')}
-                className="mt-4 px-6 py-2.5 rounded-xl font-semibold text-primary-foreground bg-gradient-to-r from-primary to-orange-600 btn-shimmer transition-all hover:shadow-[0_0_30px_rgba(255,107,43,0.3)]"
-              >
-                Go to Login →
-              </motion.button>
             </motion.div>
           ) : (
             <motion.form
@@ -182,8 +164,8 @@ const SignupPage: React.FC = () => {
               <div className="space-y-2 pt-1">
                 <label className="text-xs text-muted-foreground font-medium">Select Your Role</label>
                 <div className="flex gap-3">
-                  <RoleCard role="admin" selected={role === 'admin'} onSelect={() => setRole('admin')} />
-                  <RoleCard role="faculty" selected={role === 'faculty'} onSelect={() => setRole('faculty')} />
+                  <RoleCard role="admin" selected={selectedRole === 'admin'} onSelect={() => setSelectedRole('admin')} />
+                  <RoleCard role="faculty" selected={selectedRole === 'faculty'} onSelect={() => setSelectedRole('faculty')} />
                 </div>
               </div>
 
