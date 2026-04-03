@@ -15,6 +15,7 @@ import TypewriterText from '@/components/TypewriterText';
 import SkeletonTable from '@/components/SkeletonTable';
 import EmptyState from '@/components/EmptyState';
 import Papa from 'papaparse';
+import * as XLSX from 'xlsx';
 import { useDropzone } from 'react-dropzone';
 
 interface Student {
@@ -124,37 +125,90 @@ const StudentManagement = () => {
     fetchFilterOptions();
   };
 
+  const parseFile = useCallback((file: File) => {
+    const ext = file.name.split('.').pop()?.toLowerCase();
+    if (ext === 'csv') {
+      Papa.parse(file, {
+        header: true, skipEmptyLines: true,
+        complete: (results) => setCsvData(results.data),
+        error: () => toast.error('Failed to parse CSV file'),
+      });
+    } else if (ext === 'xlsx' || ext === 'xls') {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const wb = XLSX.read(e.target?.result, { type: 'array' });
+          const sheet = wb.Sheets[wb.SheetNames[0]];
+          const data = XLSX.utils.sheet_to_json(sheet, { defval: '' });
+          setCsvData(data);
+        } catch {
+          toast.error('Failed to parse Excel file');
+        }
+      };
+      reader.readAsArrayBuffer(file);
+    } else {
+      toast.error('Unsupported file format. Use CSV or Excel.');
+    }
+  }, []);
+
   const onCsvDrop = useCallback((files: File[]) => {
     const file = files[0];
     if (!file) return;
-    Papa.parse(file, {
-      header: true, skipEmptyLines: true,
-      complete: (results) => setCsvData(results.data),
-    });
-  }, []);
+    parseFile(file);
+  }, [parseFile]);
 
   const { getRootProps: csvRootProps, getInputProps: csvInputProps, isDragActive: csvDragActive } = useDropzone({
-    onDrop: onCsvDrop, accept: { 'text/csv': ['.csv'] }, maxFiles: 1,
+    onDrop: onCsvDrop,
+    accept: {
+      'text/csv': ['.csv'],
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx'],
+      'application/vnd.ms-excel': ['.xls'],
+    },
+    maxFiles: 1,
+  });
+
+  const mapRow = (r: any) => ({
+    enrollment_no: (r['Enrollment No'] || r['Enrollment No.'] || r['enrollment_no'] || r['EnrollmentNo'] || '').toString().trim(),
+    full_name: (r['Name'] || r['Full Name'] || r['full_name'] || r['Student Name'] || '').toString().trim(),
+    program: (r['Program'] || r['program'] || '').toString().trim() || null,
+    semester: (r['Semester'] || r['semester'] || '').toString().trim() || null,
+    section: (r['Section'] || r['section'] || '').toString().trim() || null,
+    school_institute: (r['School/Institute'] || r['School'] || r['Institute'] || r['school_institute'] || '').toString().trim() || null,
+    batch: (r['Batch'] || r['batch'] || '').toString().trim() || null,
   });
 
   const handleCsvImport = async () => {
     setCsvUploading(true);
     setCsvProgress(0);
-    const rows = csvData.map((r: any) => ({
-      enrollment_no: r['Enrollment No'] || r['Enrollment No.'] || r['enrollment_no'] || r['EnrollmentNo'] || '',
-      full_name: r['Name'] || r['Full Name'] || r['full_name'] || r['Student Name'] || '',
-      program: r['Program'] || r['program'] || null,
-      semester: r['Semester'] || r['semester'] || null,
-      section: r['Section'] || r['section'] || null,
-      school_institute: r['School/Institute'] || r['School'] || r['Institute'] || r['school_institute'] || null,
-      batch: r['Batch'] || r['batch'] || null,
-    })).filter((r: any) => r.enrollment_no && r.full_name);
 
-    for (let i = 0; i < rows.length; i++) {
-      await supabase.from('students').upsert(rows[i], { onConflict: 'enrollment_no' });
-      setCsvProgress(Math.round(((i + 1) / rows.length) * 100));
+    const rows = csvData.map(mapRow).filter(r => r.enrollment_no && r.full_name);
+    if (rows.length === 0) {
+      toast.error('No valid rows found. Ensure columns match: Enrollment No, Name, Program, Semester, Section, School/Institute, Batch');
+      setCsvUploading(false);
+      return;
     }
-    toast.success(`${rows.length} students imported`);
+
+    let imported = 0;
+    let errors = 0;
+    const batchSize = 50;
+
+    for (let i = 0; i < rows.length; i += batchSize) {
+      const batch = rows.slice(i, i + batchSize);
+      const { error } = await supabase.from('students').upsert(batch, { onConflict: 'enrollment_no' });
+      if (error) {
+        errors += batch.length;
+        console.error('Batch import error:', error.message);
+      } else {
+        imported += batch.length;
+      }
+      setCsvProgress(Math.round(((i + batch.length) / rows.length) * 100));
+    }
+
+    if (errors > 0) {
+      toast.warning(`Imported ${imported} students. ${errors} rows had errors.`);
+    } else {
+      toast.success(`${imported} students imported successfully!`);
+    }
     setCsvUploading(false);
     setCsvOpen(false);
     setCsvData([]);
@@ -321,15 +375,15 @@ const StudentManagement = () => {
         </DialogContent>
       </Dialog>
 
-      {/* CSV Upload Modal */}
+      {/* File Upload Modal */}
       <Dialog open={csvOpen} onOpenChange={setCsvOpen}>
         <DialogContent className="glass-card max-w-xl">
-          <DialogHeader><DialogTitle>Bulk CSV Upload</DialogTitle></DialogHeader>
-          <p className="text-xs text-muted-foreground">Expected columns: <strong>Enrollment No, Name, Program, Semester, Section, School/Institute, Batch</strong></p>
+          <DialogHeader><DialogTitle>Bulk Student Upload</DialogTitle></DialogHeader>
+          <p className="text-xs text-muted-foreground">Supports <strong>CSV</strong> and <strong>Excel (.xlsx/.xls)</strong> files. Expected columns: <strong>Enrollment No, Name, Program, Semester, Section, School/Institute, Batch</strong></p>
           <div {...csvRootProps()} className={`border-2 border-dashed rounded-xl p-10 text-center cursor-pointer transition-all ${csvDragActive ? 'border-success bg-success/10 drag-zone-active' : 'border-border hover:border-primary/50'}`}>
             <input {...csvInputProps()} />
             <Upload className="h-10 w-10 mx-auto mb-3 text-muted-foreground" />
-            <p className="text-muted-foreground">Drop a CSV file here or click to browse</p>
+            <p className="text-muted-foreground">Drop a CSV or Excel file here, or click to browse</p>
           </div>
           {csvData.length > 0 && (
             <div className="mt-4 space-y-3">
