@@ -5,7 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
@@ -24,6 +24,11 @@ interface Student {
   email: string | null;
   branch: string | null;
   year: number | null;
+  program: string | null;
+  semester: string | null;
+  section: string | null;
+  school_institute: string | null;
+  batch: string | null;
   face_enrolled: boolean | null;
 }
 
@@ -31,11 +36,15 @@ const StudentManagement = () => {
   const [students, setStudents] = useState<Student[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
-  const [branchFilter, setBranchFilter] = useState('all');
-  const [yearFilter, setYearFilter] = useState('all');
+  const [programFilter, setProgramFilter] = useState('all');
+  const [sectionFilter, setSectionFilter] = useState('all');
   const [page, setPage] = useState(0);
   const [total, setTotal] = useState(0);
   const pageSize = 10;
+
+  // Dynamic filter options from DB
+  const [programs, setPrograms] = useState<string[]>([]);
+  const [sections, setSections] = useState<string[]>([]);
 
   // Modal states
   const [addOpen, setAddOpen] = useState(false);
@@ -46,48 +55,62 @@ const StudentManagement = () => {
   const [shaking, setShaking] = useState(false);
 
   // Form state
-  const [form, setForm] = useState({ enrollment_no: '', full_name: '', email: '', branch: '', year: '' });
+  const [form, setForm] = useState({ enrollment_no: '', full_name: '', email: '', program: '', semester: '', section: '', school_institute: '', batch: '' });
 
   // CSV state
   const [csvData, setCsvData] = useState<any[]>([]);
   const [csvUploading, setCsvUploading] = useState(false);
   const [csvProgress, setCsvProgress] = useState(0);
 
+  const fetchFilterOptions = useCallback(async () => {
+    const { data } = await supabase.from('students').select('program, section');
+    if (data) {
+      const uniquePrograms = [...new Set(data.map(s => s.program).filter(Boolean))] as string[];
+      const uniqueSections = [...new Set(data.map(s => s.section).filter(Boolean))] as string[];
+      setPrograms(uniquePrograms.sort());
+      setSections(uniqueSections.sort());
+    }
+  }, []);
+
   const fetchStudents = useCallback(async () => {
     setLoading(true);
     let query = supabase.from('students').select('*', { count: 'exact' });
     if (search) query = query.or(`full_name.ilike.%${search}%,enrollment_no.ilike.%${search}%`);
-    if (branchFilter !== 'all') query = query.eq('branch', branchFilter);
-    if (yearFilter !== 'all') query = query.eq('year', parseInt(yearFilter));
+    if (programFilter !== 'all') query = query.eq('program', programFilter);
+    if (sectionFilter !== 'all') query = query.eq('section', sectionFilter);
     query = query.range(page * pageSize, (page + 1) * pageSize - 1).order('created_at', { ascending: false });
     const { data, count } = await query;
     setStudents(data || []);
     setTotal(count || 0);
     setLoading(false);
-  }, [search, branchFilter, yearFilter, page]);
+  }, [search, programFilter, sectionFilter, page]);
 
+  useEffect(() => { fetchFilterOptions(); }, [fetchFilterOptions]);
   useEffect(() => { fetchStudents(); }, [fetchStudents]);
 
   const handleSave = async () => {
     setSaving(true);
+    const payload = {
+      enrollment_no: form.enrollment_no,
+      full_name: form.full_name,
+      email: form.email || null,
+      program: form.program || null,
+      semester: form.semester || null,
+      section: form.section || null,
+      school_institute: form.school_institute || null,
+      batch: form.batch || null,
+    };
     if (editStudent) {
-      const { error } = await supabase.from('students').update({
-        enrollment_no: form.enrollment_no, full_name: form.full_name,
-        email: form.email || null, branch: form.branch || null,
-        year: form.year ? parseInt(form.year) : null,
-      }).eq('id', editStudent.id);
+      const { error } = await supabase.from('students').update(payload).eq('id', editStudent.id);
       if (error) toast.error(error.message); else { toast.success('Student updated'); setEditStudent(null); }
     } else {
-      const { error } = await supabase.from('students').insert({
-        enrollment_no: form.enrollment_no, full_name: form.full_name,
-        email: form.email || null, branch: form.branch || null,
-        year: form.year ? parseInt(form.year) : null,
-      });
+      const { error } = await supabase.from('students').insert(payload);
       if (error) toast.error(error.message); else { toast.success('Student added'); setAddOpen(false); }
     }
     setSaving(false);
-    setForm({ enrollment_no: '', full_name: '', email: '', branch: '', year: '' });
+    setForm({ enrollment_no: '', full_name: '', email: '', program: '', semester: '', section: '', school_institute: '', batch: '' });
     fetchStudents();
+    fetchFilterOptions();
   };
 
   const handleDelete = async () => {
@@ -98,6 +121,7 @@ const StudentManagement = () => {
     if (error) toast.error(error.message); else toast.success('Student deleted');
     setDeleteStudent(null);
     fetchStudents();
+    fetchFilterOptions();
   };
 
   const onCsvDrop = useCallback((files: File[]) => {
@@ -117,11 +141,13 @@ const StudentManagement = () => {
     setCsvUploading(true);
     setCsvProgress(0);
     const rows = csvData.map((r: any) => ({
-      enrollment_no: r.enrollment_no || r['Enrollment No'] || r['enrollment_no'],
-      full_name: r.full_name || r['Full Name'] || r['Name'] || r['full_name'],
-      email: r.email || r['Email'] || null,
-      branch: r.branch || r['Branch'] || null,
-      year: r.year ? parseInt(r.year) : r['Year'] ? parseInt(r['Year']) : null,
+      enrollment_no: r['Enrollment No'] || r['Enrollment No.'] || r['enrollment_no'] || r['EnrollmentNo'] || '',
+      full_name: r['Name'] || r['Full Name'] || r['full_name'] || r['Student Name'] || '',
+      program: r['Program'] || r['program'] || null,
+      semester: r['Semester'] || r['semester'] || null,
+      section: r['Section'] || r['section'] || null,
+      school_institute: r['School/Institute'] || r['School'] || r['Institute'] || r['school_institute'] || null,
+      batch: r['Batch'] || r['batch'] || null,
     })).filter((r: any) => r.enrollment_no && r.full_name);
 
     for (let i = 0; i < rows.length; i++) {
@@ -133,10 +159,20 @@ const StudentManagement = () => {
     setCsvOpen(false);
     setCsvData([]);
     fetchStudents();
+    fetchFilterOptions();
   };
 
   const openEdit = (s: Student) => {
-    setForm({ enrollment_no: s.enrollment_no, full_name: s.full_name, email: s.email || '', branch: s.branch || '', year: s.year?.toString() || '' });
+    setForm({
+      enrollment_no: s.enrollment_no,
+      full_name: s.full_name,
+      email: s.email || '',
+      program: s.program || '',
+      semester: s.semester || '',
+      section: s.section || '',
+      school_institute: s.school_institute || '',
+      batch: s.batch || '',
+    });
     setEditStudent(s);
   };
 
@@ -147,7 +183,7 @@ const StudentManagement = () => {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <h1 className="text-2xl font-bold"><TypewriterText text="Student Management" /></h1>
         <div className="flex gap-2">
-          <Button onClick={() => { setForm({ enrollment_no: '', full_name: '', email: '', branch: '', year: '' }); setAddOpen(true); }} className="btn-shimmer">
+          <Button onClick={() => { setForm({ enrollment_no: '', full_name: '', email: '', program: '', semester: '', section: '', school_institute: '', batch: '' }); setAddOpen(true); }} className="btn-shimmer">
             <Plus className="h-4 w-4 mr-1" /> Add Student
           </Button>
           <Button variant="outline" onClick={() => setCsvOpen(true)}>
@@ -162,20 +198,24 @@ const StudentManagement = () => {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input placeholder="Search by name or enrollment no..." className="pl-9 bg-muted/30" value={search} onChange={(e) => { setSearch(e.target.value); setPage(0); }} />
         </div>
-        <Select value={branchFilter} onValueChange={(v) => { setBranchFilter(v); setPage(0); }}>
-          <SelectTrigger className="w-[140px] bg-muted/30"><SelectValue placeholder="Branch" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Branches</SelectItem>
-            {['CSE', 'ECE', 'ME', 'CE', 'EE'].map(b => <SelectItem key={b} value={b}>{b}</SelectItem>)}
-          </SelectContent>
-        </Select>
-        <Select value={yearFilter} onValueChange={(v) => { setYearFilter(v); setPage(0); }}>
-          <SelectTrigger className="w-[120px] bg-muted/30"><SelectValue placeholder="Year" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Years</SelectItem>
-            {[1, 2, 3, 4].map(y => <SelectItem key={y} value={y.toString()}>Year {y}</SelectItem>)}
-          </SelectContent>
-        </Select>
+        {programs.length > 0 && (
+          <Select value={programFilter} onValueChange={(v) => { setProgramFilter(v); setPage(0); }}>
+            <SelectTrigger className="w-[160px] bg-muted/30"><SelectValue placeholder="Program" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Programs</SelectItem>
+              {programs.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        )}
+        {sections.length > 0 && (
+          <Select value={sectionFilter} onValueChange={(v) => { setSectionFilter(v); setPage(0); }}>
+            <SelectTrigger className="w-[130px] bg-muted/30"><SelectValue placeholder="Section" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Sections</SelectItem>
+              {sections.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        )}
       </div>
 
       {/* Table */}
@@ -190,10 +230,11 @@ const StudentManagement = () => {
                   <TableHeader>
                     <TableRow>
                       <TableHead>Enrollment No.</TableHead>
-                      <TableHead>Full Name</TableHead>
-                      <TableHead>Branch</TableHead>
-                      <TableHead>Year</TableHead>
-                      <TableHead>Email</TableHead>
+                      <TableHead>Name</TableHead>
+                      <TableHead>Program</TableHead>
+                      <TableHead>Semester</TableHead>
+                      <TableHead>Section</TableHead>
+                      <TableHead>Batch</TableHead>
                       <TableHead>Face</TableHead>
                       <TableHead>Actions</TableHead>
                     </TableRow>
@@ -209,9 +250,10 @@ const StudentManagement = () => {
                       >
                         <TableCell className="font-mono text-sm">{s.enrollment_no}</TableCell>
                         <TableCell className="font-medium">{s.full_name}</TableCell>
-                        <TableCell>{s.branch || '—'}</TableCell>
-                        <TableCell>{s.year || '—'}</TableCell>
-                        <TableCell className="text-muted-foreground text-sm">{s.email || '—'}</TableCell>
+                        <TableCell>{s.program || '—'}</TableCell>
+                        <TableCell>{s.semester || '—'}</TableCell>
+                        <TableCell>{s.section || '—'}</TableCell>
+                        <TableCell>{s.batch || '—'}</TableCell>
                         <TableCell>
                           <Badge variant={s.face_enrolled ? 'default' : 'destructive'} className={s.face_enrolled ? 'bg-success text-success-foreground' : ''}>
                             {s.face_enrolled ? '✓' : '✗'}
@@ -250,9 +292,14 @@ const StudentManagement = () => {
             <div><Label>Full Name</Label><Input value={form.full_name} onChange={e => setForm(f => ({ ...f, full_name: e.target.value }))} className="bg-muted/30" /></div>
             <div><Label>Email</Label><Input type="email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} className="bg-muted/30" /></div>
             <div className="grid grid-cols-2 gap-4">
-              <div><Label>Branch</Label><Input value={form.branch} onChange={e => setForm(f => ({ ...f, branch: e.target.value }))} className="bg-muted/30" /></div>
-              <div><Label>Year</Label><Input type="number" min={1} max={4} value={form.year} onChange={e => setForm(f => ({ ...f, year: e.target.value }))} className="bg-muted/30" /></div>
+              <div><Label>Program</Label><Input value={form.program} onChange={e => setForm(f => ({ ...f, program: e.target.value }))} className="bg-muted/30" placeholder="e.g. B.Tech" /></div>
+              <div><Label>Semester</Label><Input value={form.semester} onChange={e => setForm(f => ({ ...f, semester: e.target.value }))} className="bg-muted/30" placeholder="e.g. 4" /></div>
             </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div><Label>Section</Label><Input value={form.section} onChange={e => setForm(f => ({ ...f, section: e.target.value }))} className="bg-muted/30" placeholder="e.g. A" /></div>
+              <div><Label>Batch</Label><Input value={form.batch} onChange={e => setForm(f => ({ ...f, batch: e.target.value }))} className="bg-muted/30" placeholder="e.g. 2023-27" /></div>
+            </div>
+            <div><Label>School/Institute</Label><Input value={form.school_institute} onChange={e => setForm(f => ({ ...f, school_institute: e.target.value }))} className="bg-muted/30" /></div>
           </div>
           <DialogFooter>
             <Button onClick={handleSave} disabled={saving || !form.enrollment_no || !form.full_name} className="btn-shimmer">
@@ -278,6 +325,7 @@ const StudentManagement = () => {
       <Dialog open={csvOpen} onOpenChange={setCsvOpen}>
         <DialogContent className="glass-card max-w-xl">
           <DialogHeader><DialogTitle>Bulk CSV Upload</DialogTitle></DialogHeader>
+          <p className="text-xs text-muted-foreground">Expected columns: <strong>Enrollment No, Name, Program, Semester, Section, School/Institute, Batch</strong></p>
           <div {...csvRootProps()} className={`border-2 border-dashed rounded-xl p-10 text-center cursor-pointer transition-all ${csvDragActive ? 'border-success bg-success/10 drag-zone-active' : 'border-border hover:border-primary/50'}`}>
             <input {...csvInputProps()} />
             <Upload className="h-10 w-10 mx-auto mb-3 text-muted-foreground" />
