@@ -437,36 +437,97 @@ const StudentManagement = () => {
       </Dialog>
 
       {/* File Upload Modal */}
-      <Dialog open={csvOpen} onOpenChange={setCsvOpen}>
-        <DialogContent className="glass-card max-w-xl">
+      <Dialog open={csvOpen} onOpenChange={(o) => { setCsvOpen(o); if (!o) { setCsvData([]); setCsvColumns([]); setColumnMap({}); } }}>
+        <DialogContent className="glass-card max-w-2xl">
           <DialogHeader><DialogTitle>Bulk Student Upload</DialogTitle></DialogHeader>
-          <p className="text-xs text-muted-foreground">Supports <strong>CSV</strong> and <strong>Excel (.xlsx/.xls)</strong> files. Expected columns: <strong>Enrollment No, Name, Program, Semester, Section, School/Institute, Batch</strong></p>
-          <div {...csvRootProps()} className={`border-2 border-dashed rounded-xl p-10 text-center cursor-pointer transition-all ${csvDragActive ? 'border-success bg-success/10 drag-zone-active' : 'border-border hover:border-primary/50'}`}>
-            <input {...csvInputProps()} />
-            <Upload className="h-10 w-10 mx-auto mb-3 text-muted-foreground" />
-            <p className="text-muted-foreground">Drop a CSV or Excel file here, or click to browse</p>
-          </div>
-          {csvData.length > 0 && (
-            <div className="mt-4 space-y-3">
-              <p className="text-sm text-muted-foreground">{csvData.length} rows detected</p>
-              <div className="max-h-40 overflow-auto rounded border border-border">
+          <p className="text-xs text-muted-foreground">Supports <strong>CSV</strong> and <strong>Excel (.xlsx/.xls)</strong> files.</p>
+
+          {csvData.length === 0 ? (
+            <div {...csvRootProps()} className={`border-2 border-dashed rounded-xl p-10 text-center cursor-pointer transition-all ${csvDragActive ? 'border-success bg-success/10 drag-zone-active' : 'border-border hover:border-primary/50'}`}>
+              <input {...csvInputProps()} />
+              <Upload className="h-10 w-10 mx-auto mb-3 text-muted-foreground" />
+              <p className="text-muted-foreground">Drop a CSV or Excel file here, or click to browse</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <p className="text-sm text-muted-foreground">{csvData.length} rows detected. Map your file columns below:</p>
+
+              {/* Column Mapping */}
+              <div className="grid grid-cols-2 gap-3">
+                {TARGET_FIELDS.map(field => {
+                  const currentFileCol = Object.entries(columnMap).find(([, f]) => f === field)?.[0] || '';
+                  return (
+                    <div key={field} className="flex items-center gap-2">
+                      <Label className="text-xs w-28 shrink-0">
+                        {FIELD_LABELS[field]}
+                        {(field === 'enrollment_no' || field === 'full_name') && <span className="text-destructive ml-0.5">*</span>}
+                      </Label>
+                      <Select
+                        value={currentFileCol || '__none__'}
+                        onValueChange={(v) => {
+                          setColumnMap(prev => {
+                            const next = { ...prev };
+                            // Remove previous mapping for this field
+                            Object.keys(next).forEach(k => { if (next[k] === field) delete next[k]; });
+                            if (v !== '__none__') next[v] = field;
+                            return next;
+                          });
+                        }}
+                      >
+                        <SelectTrigger className="bg-muted/30 h-8 text-xs">
+                          <SelectValue placeholder="Select column" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="__none__">— Skip —</SelectItem>
+                          {csvColumns.map(col => (
+                            <SelectItem key={col} value={col}>{col}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Preview */}
+              <div className="max-h-36 overflow-auto rounded border border-border">
                 <Table>
-                  <TableHeader><TableRow>{Object.keys(csvData[0]).map(k => <TableHead key={k}>{k}</TableHead>)}</TableRow></TableHeader>
+                  <TableHeader>
+                    <TableRow>
+                      {csvColumns.map(k => (
+                        <TableHead key={k} className="text-xs">
+                          {k}
+                          {columnMap[k] && <span className="block text-[10px] text-primary font-normal">→ {FIELD_LABELS[columnMap[k]]}</span>}
+                        </TableHead>
+                      ))}
+                    </TableRow>
+                  </TableHeader>
                   <TableBody>
-                    {csvData.slice(0, 5).map((row: any, i: number) => (
-                      <TableRow key={i}>{Object.values(row).map((v: any, j) => <TableCell key={j}>{v}</TableCell>)}</TableRow>
+                    {csvData.slice(0, 3).map((row: any, i: number) => (
+                      <TableRow key={i}>{csvColumns.map((col) => <TableCell key={col} className="text-xs">{row[col]}</TableCell>)}</TableRow>
                     ))}
                   </TableBody>
                 </Table>
               </div>
+
               {csvUploading && (
                 <div className="w-full bg-muted rounded-full h-2 overflow-hidden">
                   <motion.div className="h-full bg-primary rounded-full" initial={{ width: 0 }} animate={{ width: `${csvProgress}%` }} transition={{ duration: 0.3 }} />
                 </div>
               )}
-              <Button onClick={handleCsvImport} disabled={csvUploading} className="w-full btn-shimmer">
-                {csvUploading ? <><Loader2 className="h-4 w-4 animate-spin mr-2" />Importing {csvProgress}%</> : `Import ${csvData.length} Students`}
-              </Button>
+
+              <div className="flex gap-2">
+                <Button variant="outline" onClick={() => { setCsvData([]); setCsvColumns([]); setColumnMap({}); }} className="flex-1">
+                  Re-upload
+                </Button>
+                <Button
+                  onClick={handleCsvImport}
+                  disabled={csvUploading || !Object.values(columnMap).includes('enrollment_no') || !Object.values(columnMap).includes('full_name')}
+                  className="flex-1 btn-shimmer"
+                >
+                  {csvUploading ? <><Loader2 className="h-4 w-4 animate-spin mr-2" />Importing {csvProgress}%</> : `Import ${csvData.length} Students`}
+                </Button>
+              </div>
             </div>
           )}
         </DialogContent>
