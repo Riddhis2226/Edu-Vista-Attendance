@@ -176,6 +176,8 @@ const StudentManagement = () => {
     if (ext === 'csv') {
       Papa.parse(file, {
         header: true, skipEmptyLines: true,
+        transform: (value) => value.replace(/\r/g, '').trim(),
+        transformHeader: (header) => header.replace(/\r/g, '').trim(),
         complete: (results) => onFileLoaded(results.data),
         error: () => toast.error('Failed to parse CSV file'),
       });
