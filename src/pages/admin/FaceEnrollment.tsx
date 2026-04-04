@@ -119,7 +119,7 @@ const FaceEnrollment = () => {
                   <TableRow>
                     <TableHead>Enrollment No.</TableHead>
                     <TableHead>Name</TableHead>
-                    <TableHead>Branch</TableHead>
+                    <TableHead>Program</TableHead>
                     <TableHead>Face Status</TableHead>
                     <TableHead>Action</TableHead>
                   </TableRow>
