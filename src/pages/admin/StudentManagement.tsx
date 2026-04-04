@@ -49,6 +49,7 @@ const StudentManagement = () => {
   const [programs, setPrograms] = useState<string[]>([]);
   const [sections, setSections] = useState<string[]>([]);
   const [batches, setBatches] = useState<string[]>([]);
+  const [semesters, setSemesters] = useState<string[]>([]);
 
   // Modal states
   const [addOpen, setAddOpen] = useState(false);
