@@ -85,6 +85,7 @@ const StudentManagement = () => {
     if (search) query = query.or(`full_name.ilike.%${search}%,enrollment_no.ilike.%${search}%`);
     if (programFilter !== 'all') query = query.eq('program', programFilter);
     if (sectionFilter !== 'all') query = query.eq('section', sectionFilter);
+    if (batchFilter !== 'all') query = query.eq('batch', batchFilter);
     query = query.range(page * pageSize, (page + 1) * pageSize - 1).order('created_at', { ascending: false });
     const { data, count } = await query;
     setStudents(data || []);
