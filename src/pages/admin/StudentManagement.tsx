@@ -70,14 +70,16 @@ const StudentManagement = () => {
   const [csvProgress, setCsvProgress] = useState(0);
 
   const fetchFilterOptions = useCallback(async () => {
-    const { data } = await supabase.from('students').select('program, section, batch');
+    const { data } = await supabase.from('students').select('program, section, batch, semester');
     if (data) {
       const uniquePrograms = [...new Set(data.map(s => s.program).filter(Boolean))] as string[];
       const uniqueSections = [...new Set(data.map(s => s.section).filter(Boolean))] as string[];
       const uniqueBatches = [...new Set(data.map(s => s.batch).filter(Boolean))] as string[];
+      const uniqueSemesters = [...new Set(data.map(s => s.semester).filter(Boolean))] as string[];
       setPrograms(uniquePrograms.sort());
       setSections(uniqueSections.sort());
       setBatches(uniqueBatches.sort());
+      setSemesters(uniqueSemesters.sort());
     }
   }, []);
 
