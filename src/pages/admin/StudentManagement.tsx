@@ -39,6 +39,7 @@ const StudentManagement = () => {
   const [search, setSearch] = useState('');
   const [programFilter, setProgramFilter] = useState('all');
   const [sectionFilter, setSectionFilter] = useState('all');
+  const [batchFilter, setBatchFilter] = useState('all');
   const [page, setPage] = useState(0);
   const [total, setTotal] = useState(0);
   const pageSize = 10;
@@ -46,6 +47,7 @@ const StudentManagement = () => {
   // Dynamic filter options from DB
   const [programs, setPrograms] = useState<string[]>([]);
   const [sections, setSections] = useState<string[]>([]);
+  const [batches, setBatches] = useState<string[]>([]);
 
   // Modal states
   const [addOpen, setAddOpen] = useState(false);
@@ -66,12 +68,14 @@ const StudentManagement = () => {
   const [csvProgress, setCsvProgress] = useState(0);
 
   const fetchFilterOptions = useCallback(async () => {
-    const { data } = await supabase.from('students').select('program, section');
+    const { data } = await supabase.from('students').select('program, section, batch');
     if (data) {
       const uniquePrograms = [...new Set(data.map(s => s.program).filter(Boolean))] as string[];
       const uniqueSections = [...new Set(data.map(s => s.section).filter(Boolean))] as string[];
+      const uniqueBatches = [...new Set(data.map(s => s.batch).filter(Boolean))] as string[];
       setPrograms(uniquePrograms.sort());
       setSections(uniqueSections.sort());
+      setBatches(uniqueBatches.sort());
     }
   }, []);
 
@@ -81,12 +85,13 @@ const StudentManagement = () => {
     if (search) query = query.or(`full_name.ilike.%${search}%,enrollment_no.ilike.%${search}%`);
     if (programFilter !== 'all') query = query.eq('program', programFilter);
     if (sectionFilter !== 'all') query = query.eq('section', sectionFilter);
+    if (batchFilter !== 'all') query = query.eq('batch', batchFilter);
     query = query.range(page * pageSize, (page + 1) * pageSize - 1).order('created_at', { ascending: false });
     const { data, count } = await query;
     setStudents(data || []);
     setTotal(count || 0);
     setLoading(false);
-  }, [search, programFilter, sectionFilter, page]);
+  }, [search, programFilter, sectionFilter, batchFilter, page]);
 
   useEffect(() => { fetchFilterOptions(); }, [fetchFilterOptions]);
   useEffect(() => { fetchStudents(); }, [fetchStudents]);
@@ -346,6 +351,15 @@ const StudentManagement = () => {
             <SelectContent>
               <SelectItem value="all">All Sections</SelectItem>
               {sections.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        )}
+        {batches.length > 0 && (
+          <Select value={batchFilter} onValueChange={(v) => { setBatchFilter(v); setPage(0); }}>
+            <SelectTrigger className="w-[130px] bg-muted/30"><SelectValue placeholder="Batch" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Batches</SelectItem>
+              {batches.map(b => <SelectItem key={b} value={b}>{b}</SelectItem>)}
             </SelectContent>
           </Select>
         )}
