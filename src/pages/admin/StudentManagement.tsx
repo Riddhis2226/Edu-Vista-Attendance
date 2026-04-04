@@ -40,6 +40,7 @@ const StudentManagement = () => {
   const [programFilter, setProgramFilter] = useState('all');
   const [sectionFilter, setSectionFilter] = useState('all');
   const [batchFilter, setBatchFilter] = useState('all');
+  const [semesterFilter, setSemesterFilter] = useState('all');
   const [page, setPage] = useState(0);
   const [total, setTotal] = useState(0);
   const pageSize = 10;
@@ -48,6 +49,7 @@ const StudentManagement = () => {
   const [programs, setPrograms] = useState<string[]>([]);
   const [sections, setSections] = useState<string[]>([]);
   const [batches, setBatches] = useState<string[]>([]);
+  const [semesters, setSemesters] = useState<string[]>([]);
 
   // Modal states
   const [addOpen, setAddOpen] = useState(false);
@@ -68,14 +70,16 @@ const StudentManagement = () => {
   const [csvProgress, setCsvProgress] = useState(0);
 
   const fetchFilterOptions = useCallback(async () => {
-    const { data } = await supabase.from('students').select('program, section, batch');
+    const { data } = await supabase.from('students').select('program, section, batch, semester');
     if (data) {
       const uniquePrograms = [...new Set(data.map(s => s.program).filter(Boolean))] as string[];
       const uniqueSections = [...new Set(data.map(s => s.section).filter(Boolean))] as string[];
       const uniqueBatches = [...new Set(data.map(s => s.batch).filter(Boolean))] as string[];
+      const uniqueSemesters = [...new Set(data.map(s => s.semester).filter(Boolean))] as string[];
       setPrograms(uniquePrograms.sort());
       setSections(uniqueSections.sort());
       setBatches(uniqueBatches.sort());
+      setSemesters(uniqueSemesters.sort());
     }
   }, []);
 
@@ -86,12 +90,13 @@ const StudentManagement = () => {
     if (programFilter !== 'all') query = query.eq('program', programFilter);
     if (sectionFilter !== 'all') query = query.eq('section', sectionFilter);
     if (batchFilter !== 'all') query = query.eq('batch', batchFilter);
+    if (semesterFilter !== 'all') query = query.eq('semester', semesterFilter);
     query = query.range(page * pageSize, (page + 1) * pageSize - 1).order('created_at', { ascending: false });
     const { data, count } = await query;
     setStudents(data || []);
     setTotal(count || 0);
     setLoading(false);
-  }, [search, programFilter, sectionFilter, batchFilter, page]);
+  }, [search, programFilter, sectionFilter, batchFilter, semesterFilter, page]);
 
   useEffect(() => { fetchFilterOptions(); }, [fetchFilterOptions]);
   useEffect(() => { fetchStudents(); }, [fetchStudents]);
@@ -360,6 +365,15 @@ const StudentManagement = () => {
             <SelectContent>
               <SelectItem value="all">All Batches</SelectItem>
               {batches.map(b => <SelectItem key={b} value={b}>{b}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        )}
+        {semesters.length > 0 && (
+          <Select value={semesterFilter} onValueChange={(v) => { setSemesterFilter(v); setPage(0); }}>
+            <SelectTrigger className="w-[150px] bg-muted/30"><SelectValue placeholder="Semester" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Semesters</SelectItem>
+              {semesters.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
             </SelectContent>
           </Select>
         )}
