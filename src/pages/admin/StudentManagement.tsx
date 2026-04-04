@@ -39,6 +39,7 @@ const StudentManagement = () => {
   const [search, setSearch] = useState('');
   const [programFilter, setProgramFilter] = useState('all');
   const [sectionFilter, setSectionFilter] = useState('all');
+  const [batchFilter, setBatchFilter] = useState('all');
   const [page, setPage] = useState(0);
   const [total, setTotal] = useState(0);
   const pageSize = 10;
