@@ -368,6 +368,15 @@ const StudentManagement = () => {
             </SelectContent>
           </Select>
         )}
+        {semesters.length > 0 && (
+          <Select value={semesterFilter} onValueChange={(v) => { setSemesterFilter(v); setPage(0); }}>
+            <SelectTrigger className="w-[150px] bg-muted/30"><SelectValue placeholder="Semester" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Semesters</SelectItem>
+              {semesters.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        )}
       </div>
 
       {/* Table */}
