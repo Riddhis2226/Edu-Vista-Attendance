@@ -91,7 +91,7 @@ const StudentManagement = () => {
     setStudents(data || []);
     setTotal(count || 0);
     setLoading(false);
-  }, [search, programFilter, sectionFilter, page]);
+  }, [search, programFilter, sectionFilter, batchFilter, page]);
 
   useEffect(() => { fetchFilterOptions(); }, [fetchFilterOptions]);
   useEffect(() => { fetchStudents(); }, [fetchStudents]);
