@@ -354,6 +354,15 @@ const StudentManagement = () => {
             </SelectContent>
           </Select>
         )}
+        {batches.length > 0 && (
+          <Select value={batchFilter} onValueChange={(v) => { setBatchFilter(v); setPage(0); }}>
+            <SelectTrigger className="w-[130px] bg-muted/30"><SelectValue placeholder="Batch" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Batches</SelectItem>
+              {batches.map(b => <SelectItem key={b} value={b}>{b}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        )}
       </div>
 
       {/* Table */}
