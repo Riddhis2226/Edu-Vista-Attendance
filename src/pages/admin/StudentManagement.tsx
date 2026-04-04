@@ -47,6 +47,7 @@ const StudentManagement = () => {
   // Dynamic filter options from DB
   const [programs, setPrograms] = useState<string[]>([]);
   const [sections, setSections] = useState<string[]>([]);
+  const [batches, setBatches] = useState<string[]>([]);
 
   // Modal states
   const [addOpen, setAddOpen] = useState(false);
