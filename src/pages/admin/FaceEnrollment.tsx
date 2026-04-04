@@ -119,7 +119,7 @@ const FaceEnrollment = () => {
                   <TableRow>
                     <TableHead>Enrollment No.</TableHead>
                     <TableHead>Name</TableHead>
-                    <TableHead>Branch</TableHead>
+                    <TableHead>Program</TableHead>
                     <TableHead>Face Status</TableHead>
                     <TableHead>Action</TableHead>
                   </TableRow>
@@ -130,7 +130,7 @@ const FaceEnrollment = () => {
                       className="border-b border-border hover:bg-muted/20 transition-all">
                       <TableCell className="font-mono">{s.enrollment_no}</TableCell>
                       <TableCell>{s.full_name}</TableCell>
-                      <TableCell>{s.branch || '—'}</TableCell>
+                      <TableCell>{s.program || '—'}</TableCell>
                       <TableCell>
                         <Badge variant={s.face_enrolled ? 'default' : 'destructive'} className={s.face_enrolled ? 'bg-success text-success-foreground' : ''}>
                           {s.face_enrolled ? '✓ Enrolled' : '✗ Not Enrolled'}
