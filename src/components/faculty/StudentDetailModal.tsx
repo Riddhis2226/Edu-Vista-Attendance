@@ -17,14 +17,14 @@ export interface SummaryRow {
   batch: string | null;
   semester: string | null;
   faculty_name: string | null;
-  total_lectures: number;
+  total_lectures: number | null;
   lectures_held: number;
   lectures_attended: number;
   attendance_percentage: number;
   is_below_threshold: boolean;
-  lectures_needed: number;
-  lectures_remaining: number;
-  can_recover: boolean;
+  lectures_needed: number | null;
+  lectures_remaining: number | null;
+  can_recover: boolean | null;
 }
 
 interface Props {
@@ -59,15 +59,19 @@ const StudentDetailModal: React.FC<Props> = ({ open, onOpenChange, row }) => {
 
   const pct = row.attendance_percentage;
   const safe = !row.is_below_threshold;
+  const noTarget = row.total_lectures == null;
   const buffer = Math.max(0, row.lectures_attended - Math.ceil(0.75 * row.lectures_held));
-  const maxReachablePct = row.total_lectures > 0
-    ? ((row.lectures_attended + row.lectures_remaining) / row.total_lectures) * 100
+  const totalLecturesSafe = row.total_lectures ?? 0;
+  const lecturesRemainingSafe = row.lectures_remaining ?? 0;
+  const lecturesNeededSafe = row.lectures_needed ?? 0;
+  const maxReachablePct = totalLecturesSafe > 0
+    ? ((row.lectures_attended + lecturesRemainingSafe) / totalLecturesSafe) * 100
     : 0;
 
   // Recovery bar: total visualized over total_lectures (or held + needed if no target)
-  const totalForBar = Math.max(row.total_lectures, row.lectures_held + row.lectures_needed, 1);
+  const totalForBar = Math.max(totalLecturesSafe, row.lectures_held + lecturesNeededSafe, 1);
   const attendedPct = (row.lectures_attended / totalForBar) * 100;
-  const neededPct = (row.lectures_needed / totalForBar) * 100;
+  const neededPct = (lecturesNeededSafe / totalForBar) * 100;
   const remainingPct = Math.max(0, 100 - attendedPct - neededPct);
   const thresholdPct = 75;
 
@@ -105,7 +109,7 @@ const StudentDetailModal: React.FC<Props> = ({ open, onOpenChange, row }) => {
               <span className="text-muted-foreground"> attended out of </span>
               <span className="text-foreground"><CountUp end={row.lectures_held} /></span> lectures held
             </p>
-            {row.total_lectures > 0 && (
+            {row.total_lectures != null && row.total_lectures > 0 && (
               <p className="text-sm text-muted-foreground mt-1">
                 {row.total_lectures} total lectures planned this semester
               </p>
@@ -114,7 +118,17 @@ const StudentDetailModal: React.FC<Props> = ({ open, onOpenChange, row }) => {
         </div>
 
         {/* Recovery info card */}
-        {safe ? (
+        {noTarget ? (
+          <div className="p-4 rounded-xl border border-muted bg-muted/20 flex gap-3">
+            <AlertTriangle className="h-5 w-5 text-muted-foreground shrink-0 mt-0.5" />
+            <div>
+              <Badge variant="outline" className="mb-2">Target not set</Badge>
+              <p className="text-sm text-muted-foreground">
+                The admin has not yet configured the total planned lectures for this subject + batch + semester. Recovery status is unavailable until a target is set.
+              </p>
+            </div>
+          </div>
+        ) : safe ? (
           <div className="p-4 rounded-xl border border-success/40 bg-success/10 flex gap-3">
             <CheckCircle2 className="h-5 w-5 text-success shrink-0 mt-0.5" />
             <div>
@@ -131,10 +145,10 @@ const StudentDetailModal: React.FC<Props> = ({ open, onOpenChange, row }) => {
               <div>
                 <p className="font-semibold text-warning">⚠ Attendance Recovery Required</p>
                 <p className="text-3xl font-bold text-primary mt-1">
-                  Needs <CountUp end={row.lectures_needed} /> more consecutive lecture{row.lectures_needed === 1 ? '' : 's'}
+                  Needs <CountUp end={lecturesNeededSafe} /> more consecutive lecture{lecturesNeededSafe === 1 ? '' : 's'}
                 </p>
                 <p className="text-sm text-muted-foreground mt-1">
-                  If this student attends the next {row.lectures_needed} lectures without any absence, their attendance will reach 75.0%.
+                  If this student attends the next {lecturesNeededSafe} lectures without any absence, their attendance will reach 75.0%.
                 </p>
               </div>
             </div>
@@ -163,11 +177,11 @@ const StudentDetailModal: React.FC<Props> = ({ open, onOpenChange, row }) => {
             <div className="flex justify-between text-[10px] text-muted-foreground">
               <span>Attended ({row.lectures_attended})</span>
               <span className="text-success">75% threshold</span>
-              <span>Total ({row.total_lectures || row.lectures_held + row.lectures_remaining})</span>
+              <span>Total ({totalLecturesSafe || row.lectures_held + lecturesRemainingSafe})</span>
             </div>
-            {row.total_lectures > 0 && (
+            {totalLecturesSafe > 0 && (
               <p className="text-xs text-muted-foreground">
-                Lectures remaining this semester: <span className="font-semibold text-foreground">{row.lectures_remaining}</span> — Recovery is mathematically possible.
+                Lectures remaining this semester: <span className="font-semibold text-foreground">{lecturesRemainingSafe}</span> — Recovery is mathematically possible.
               </p>
             )}
           </div>
@@ -178,10 +192,10 @@ const StudentDetailModal: React.FC<Props> = ({ open, onOpenChange, row }) => {
               <div>
                 <p className="font-semibold text-destructive">✗ Recovery Not Possible This Semester</p>
                 <p className="text-sm text-muted-foreground mt-1">
-                  Even attending all {row.lectures_remaining} remaining lecture{row.lectures_remaining === 1 ? '' : 's'}, this student can only reach <span className="font-semibold text-destructive">{maxReachablePct.toFixed(1)}%</span> maximum.
+                  Even attending all {lecturesRemainingSafe} remaining lecture{lecturesRemainingSafe === 1 ? '' : 's'}, this student can only reach <span className="font-semibold text-destructive">{maxReachablePct.toFixed(1)}%</span> maximum.
                 </p>
                 <p className="text-xs text-muted-foreground mt-2 font-mono">
-                  ({row.lectures_attended} + {row.lectures_remaining}) / {row.total_lectures} × 100 = {maxReachablePct.toFixed(1)}%
+                  ({row.lectures_attended} + {lecturesRemainingSafe}) / {totalLecturesSafe} × 100 = {maxReachablePct.toFixed(1)}%
                 </p>
                 <p className="text-sm mt-2 text-warning">Recommend: Apply for condonation or medical exemption.</p>
               </div>

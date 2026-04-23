@@ -177,7 +177,7 @@ const UploadDataset = () => {
             <Check className="h-10 w-10 text-success" />
           </div>
           <p className="text-success font-semibold text-lg">Attendance Saved Successfully!</p>
-          <Button variant="outline" className="mt-4" onClick={() => { setPhase('upload'); setCsvData([]); setErrors([]); setSubject(''); }}>
+          <Button variant="outline" className="mt-4" onClick={() => { setPhase('upload'); setCsvData([]); setErrors([]); setSubject(''); setBatch(''); }}>
             Upload Another
           </Button>
         </motion.div>
