@@ -123,9 +123,31 @@ const FaceEnrollment = () => {
     <div className="space-y-6">
       <h1 className="text-2xl font-bold"><TypewriterText text="Face Enrollment" /></h1>
 
-      <div className="relative max-w-md">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input placeholder="Search students..." className="pl-9 bg-muted/30" value={search} onChange={(e) => setSearch(e.target.value)} />
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="relative flex-1 min-w-[220px] max-w-md">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input placeholder="Search students..." className="pl-9 bg-muted/30" value={search} onChange={(e) => setSearch(e.target.value)} />
+        </div>
+        <Select value={programFilter} onValueChange={setProgramFilter}>
+          <SelectTrigger className="w-[200px] bg-muted/30"><SelectValue placeholder="Program" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Programs</SelectItem>
+            {programs.map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}
+          </SelectContent>
+        </Select>
+        <Select value={batchFilter} onValueChange={setBatchFilter}>
+          <SelectTrigger className="w-[170px] bg-muted/30"><SelectValue placeholder="Batch" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Batches</SelectItem>
+            {batches.map((b) => <SelectItem key={b} value={b}>{b}</SelectItem>)}
+          </SelectContent>
+        </Select>
+        {(programFilter !== 'all' || batchFilter !== 'all' || search) && (
+          <Button variant="ghost" size="sm" onClick={() => { setSearch(''); setProgramFilter('all'); setBatchFilter('all'); }}>
+            Clear
+          </Button>
+        )}
+        <span className="text-sm text-muted-foreground ml-auto">{students.length} student{students.length !== 1 ? 's' : ''}</span>
       </div>
 
       <Card className="glass-card">
