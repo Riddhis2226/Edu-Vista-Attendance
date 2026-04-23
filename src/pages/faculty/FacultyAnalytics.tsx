@@ -89,13 +89,14 @@ const FacultyAnalytics = () => {
   }, [summary, subjFilter, batchFilter, atRiskOnly, sortKey, sortAsc]);
 
   const counts = useMemo(() => {
-    let safe = 0, atRisk = 0, cannot = 0;
+    let safe = 0, atRisk = 0, cannot = 0, noTarget = 0;
     filtered.forEach((r) => {
+      if (r.total_lectures == null) { noTarget++; return; }
       if (!r.is_below_threshold) safe++;
       else if (r.can_recover) atRisk++;
       else cannot++;
     });
-    return { safe, atRisk, cannot };
+    return { safe, atRisk, cannot, noTarget };
   }, [filtered]);
 
   const toggleSort = (key: keyof SummaryRow) => {
@@ -112,6 +113,7 @@ const FacultyAnalytics = () => {
   };
 
   const statusLabel = (r: SummaryRow) => {
+    if (r.total_lectures == null) return <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-muted-foreground" /> No Target</span>;
     if (!r.is_below_threshold) return <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-success" /> Safe</span>;
     if (r.can_recover) return <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-warning" /> At Risk</span>;
     return <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-destructive" /> Critical</span>;
@@ -182,7 +184,8 @@ const FacultyAnalytics = () => {
                     </TableHeader>
                     <TableBody>
                       {filtered.map((r, i) => {
-                        const cannot = r.is_below_threshold && !r.can_recover && r.total_lectures > 0;
+                        const noTarget = r.total_lectures == null;
+                        const cannot = !noTarget && r.is_below_threshold && !r.can_recover;
                         return (
                           <motion.tr
                             key={`${r.student_id}-${r.subject}`}
@@ -206,13 +209,15 @@ const FacultyAnalytics = () => {
                             </TableCell>
                             <TableCell>{statusLabel(r)}</TableCell>
                             <TableCell>
-                              {r.lectures_needed === 0 ? (
+                              {noTarget ? (
+                                <Badge variant="outline" className="text-muted-foreground">Target not set</Badge>
+                              ) : r.lectures_needed === 0 ? (
                                 <Badge className="bg-success/20 text-success border border-success/40">On Track ✓</Badge>
                               ) : (
                                 <Tooltip>
                                   <TooltipTrigger asChild>
                                     <span className="px-2 py-1 rounded bg-primary/15 text-primary font-semibold text-sm">
-                                      Needs <CountUp end={r.lectures_needed} duration={800} /> more
+                                      Needs <CountUp end={r.lectures_needed ?? 0} duration={800} /> more
                                     </span>
                                   </TooltipTrigger>
                                   <TooltipContent>
@@ -222,7 +227,9 @@ const FacultyAnalytics = () => {
                               )}
                             </TableCell>
                             <TableCell>
-                              {!r.is_below_threshold ? (
+                              {noTarget ? (
+                                <Badge variant="outline" className="text-muted-foreground">Target not set</Badge>
+                              ) : !r.is_below_threshold ? (
                                 <span className="text-xs text-muted-foreground">—</span>
                               ) : r.can_recover ? (
                                 <Badge className="bg-success/20 text-success border border-success/40">✓ Can Recover</Badge>
@@ -249,6 +256,12 @@ const FacultyAnalytics = () => {
                     <span className="text-warning font-semibold">{counts.atRisk} at risk</span>
                     <span className="text-muted-foreground">·</span>
                     <span className="text-destructive font-semibold">{counts.cannot} cannot recover</span>
+                    {counts.noTarget > 0 && (
+                      <>
+                        <span className="text-muted-foreground">·</span>
+                        <span className="text-muted-foreground font-semibold">{counts.noTarget} no target</span>
+                      </>
+                    )}
                   </div>
                 </>
               )}

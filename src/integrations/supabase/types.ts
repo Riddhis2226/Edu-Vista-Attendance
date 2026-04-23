@@ -64,6 +64,7 @@ export type Database = {
       }
       attendance_sessions: {
         Row: {
+          batch: string
           created_at: string
           date: string
           faculty_id: string
@@ -75,6 +76,7 @@ export type Database = {
           total_present: number | null
         }
         Insert: {
+          batch: string
           created_at?: string
           date?: string
           faculty_id: string
@@ -86,6 +88,7 @@ export type Database = {
           total_present?: number | null
         }
         Update: {
+          batch?: string
           created_at?: string
           date?: string
           faculty_id?: string
