@@ -98,6 +98,45 @@ export type Database = {
         }
         Relationships: []
       }
+      lecture_targets: {
+        Row: {
+          batch: string
+          created_at: string
+          created_by: string | null
+          faculty_id: string
+          faculty_name: string | null
+          id: string
+          semester: string
+          subject: string
+          total_lectures: number
+          updated_at: string
+        }
+        Insert: {
+          batch: string
+          created_at?: string
+          created_by?: string | null
+          faculty_id: string
+          faculty_name?: string | null
+          id?: string
+          semester: string
+          subject: string
+          total_lectures: number
+          updated_at?: string
+        }
+        Update: {
+          batch?: string
+          created_at?: string
+          created_by?: string | null
+          faculty_id?: string
+          faculty_name?: string | null
+          id?: string
+          semester?: string
+          subject?: string
+          total_lectures?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       students: {
         Row: {
           azure_person_id: string | null
@@ -181,7 +220,35 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      student_attendance_summary: {
+        Row: {
+          attendance_percentage: number | null
+          batch: string | null
+          can_recover: boolean | null
+          enrollment_no: string | null
+          faculty_name: string | null
+          is_below_threshold: boolean | null
+          lecture_target_id: string | null
+          lectures_attended: number | null
+          lectures_held: number | null
+          lectures_needed: number | null
+          lectures_remaining: number | null
+          semester: string | null
+          student_id: string | null
+          student_name: string | null
+          subject: string | null
+          total_lectures: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "attendance_records_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       get_user_role: {
