@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Camera, FileSpreadsheet, Clock, BookOpen } from 'lucide-react';
+import { Camera, FileSpreadsheet, Clock, BookOpen, Target as TargetIcon } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent } from '@/components/ui/card';
@@ -9,19 +9,40 @@ import { Badge } from '@/components/ui/badge';
 import TypewriterText from '@/components/TypewriterText';
 import StatCard from '@/components/StatCard';
 import EmptyState from '@/components/EmptyState';
+import AttendanceRing from '@/components/faculty/AttendanceRing';
 
 const FacultyOverview = () => {
   const { user, userName } = useAuth();
   const navigate = useNavigate();
   const [recentSessions, setRecentSessions] = useState<any[]>([]);
+  const [targets, setTargets] = useState<any[]>([]);
+  const [sessionCounts, setSessionCounts] = useState<Map<string, number>>(new Map());
+  const [orphanSubjects, setOrphanSubjects] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!user) return;
     const fetch = async () => {
-      const { data } = await supabase.from('attendance_sessions')
-        .select('*').eq('faculty_id', user.id).order('created_at', { ascending: false }).limit(5);
-      setRecentSessions(data || []);
+      const [recentRes, targetsRes, sessionsRes] = await Promise.all([
+        supabase.from('attendance_sessions').select('*').eq('faculty_id', user.id).order('created_at', { ascending: false }).limit(5),
+        supabase.from('lecture_targets' as any).select('*').eq('faculty_id', user.id),
+        supabase.from('attendance_sessions').select('subject').eq('faculty_id', user.id),
+      ]);
+      setRecentSessions(recentRes.data || []);
+      setTargets((targetsRes.data as any[]) || []);
+
+      // Count sessions per subject
+      const counts = new Map<string, number>();
+      (sessionsRes.data || []).forEach((s: any) => {
+        counts.set(s.subject, (counts.get(s.subject) || 0) + 1);
+      });
+      setSessionCounts(counts);
+
+      // Find subjects with sessions but no target
+      const targetSubjects = new Set(((targetsRes.data as any[]) || []).map((t: any) => t.subject));
+      const orphans = Array.from(counts.keys()).filter((s) => !targetSubjects.has(s));
+      setOrphanSubjects(orphans);
+
       setLoading(false);
     };
     fetch();
