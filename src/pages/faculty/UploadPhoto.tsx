@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Upload, X, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import TypewriterText from '@/components/TypewriterText';
 import StepProgress from '@/components/StepProgress';
@@ -21,6 +22,17 @@ const UploadPhoto = () => {
   const [files, setFiles] = useState<File[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
   const [subject, setSubject] = useState('');
+  const [batch, setBatch] = useState('');
+  const [batchOptions, setBatchOptions] = useState<string[]>([]);
+
+  useEffect(() => {
+    (async () => {
+      const { data } = await supabase.from('students').select('batch');
+      const set = new Set<string>();
+      (data || []).forEach((s: any) => s.batch && set.add(s.batch));
+      setBatchOptions(Array.from(set).sort());
+    })();
+  }, []);
   const [phase, setPhase] = useState<'upload' | 'processing' | 'results'>('upload');
   const [steps, setSteps] = useState<{ label: string; status: StepStatus }[]>([
     { label: 'Uploading Photos', status: 'pending' },
@@ -110,7 +122,7 @@ const UploadPhoto = () => {
     const absent = results.filter(r => r.status === 'absent').length;
 
     const { data: session, error: sessErr } = await supabase.from('attendance_sessions').insert({
-      subject, faculty_id: user.id, faculty_name: userName, method: 'ai_photo' as const,
+      subject, batch, faculty_id: user.id, faculty_name: userName, method: 'ai_photo' as const,
       total_present: present, total_absent: absent,
     }).select().single();
 
@@ -135,7 +147,23 @@ const UploadPhoto = () => {
 
       {phase === 'upload' && (
         <div className="space-y-6">
-          <div><Label>Subject</Label><Input value={subject} onChange={e => setSubject(e.target.value)} className="bg-muted/30 max-w-md" placeholder="e.g. Data Structures" /></div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-2xl">
+            <div>
+              <Label>Subject</Label>
+              <Input value={subject} onChange={e => setSubject(e.target.value)} className="bg-muted/30 mt-1" placeholder="e.g. Data Structures" />
+            </div>
+            <div>
+              <Label>Batch</Label>
+              <Select value={batch} onValueChange={setBatch}>
+                <SelectTrigger className="bg-muted/30 mt-1"><SelectValue placeholder="Select batch" /></SelectTrigger>
+                <SelectContent>
+                  {batchOptions.length === 0 ? (
+                    <SelectItem value="__none" disabled>No batches found</SelectItem>
+                  ) : batchOptions.map(b => <SelectItem key={b} value={b}>{b}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
 
           <div {...getRootProps()} className={`border-2 border-dashed rounded-xl p-12 text-center cursor-pointer transition-all ${isDragActive ? 'border-success bg-success/10 drag-zone-active' : 'border-border hover:border-primary/50'}`}>
             <input {...getInputProps()} />
@@ -157,7 +185,7 @@ const UploadPhoto = () => {
             </div>
           )}
 
-          <Button onClick={startRecognition} disabled={files.length === 0 || !subject} className="btn-shimmer" size="lg">
+          <Button onClick={startRecognition} disabled={files.length === 0 || !subject || !batch} className="btn-shimmer" size="lg">
             Start Recognition
           </Button>
         </div>

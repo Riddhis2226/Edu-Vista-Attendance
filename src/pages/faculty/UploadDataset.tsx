@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Upload, AlertTriangle, Loader2, Check } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import TypewriterText from '@/components/TypewriterText';
 import { useDropzone } from 'react-dropzone';
@@ -17,6 +18,17 @@ import { toast } from 'sonner';
 const UploadDataset = () => {
   const { user, userName } = useAuth();
   const [subject, setSubject] = useState('');
+  const [batch, setBatch] = useState('');
+  const [batchOptions, setBatchOptions] = useState<string[]>([]);
+
+  useEffect(() => {
+    (async () => {
+      const { data } = await supabase.from('students').select('batch');
+      const set = new Set<string>();
+      (data || []).forEach((s: any) => s.batch && set.add(s.batch));
+      setBatchOptions(Array.from(set).sort());
+    })();
+  }, []);
   const [phase, setPhase] = useState<'upload' | 'preview' | 'saved'>('upload');
   const [csvData, setCsvData] = useState<any[]>([]);
   const [errors, setErrors] = useState<number[]>([]);
@@ -62,7 +74,7 @@ const UploadDataset = () => {
     const studentMap = new Map((students || []).map(s => [s.enrollment_no, s.id]));
 
     const { data: session, error } = await supabase.from('attendance_sessions').insert({
-      subject, faculty_id: user.id, faculty_name: userName, method: 'iot_dataset' as const,
+      subject, batch, faculty_id: user.id, faculty_name: userName, method: 'iot_dataset' as const,
       total_present: present, total_absent: absent,
     }).select().single();
 
@@ -90,7 +102,23 @@ const UploadDataset = () => {
 
       {phase === 'upload' && (
         <div className="space-y-6">
-          <div><Label>Subject</Label><Input value={subject} onChange={e => setSubject(e.target.value)} className="bg-muted/30 max-w-md" placeholder="e.g. Operating Systems" /></div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-2xl">
+            <div>
+              <Label>Subject</Label>
+              <Input value={subject} onChange={e => setSubject(e.target.value)} className="bg-muted/30 mt-1" placeholder="e.g. Operating Systems" />
+            </div>
+            <div>
+              <Label>Batch</Label>
+              <Select value={batch} onValueChange={setBatch}>
+                <SelectTrigger className="bg-muted/30 mt-1"><SelectValue placeholder="Select batch" /></SelectTrigger>
+                <SelectContent>
+                  {batchOptions.length === 0 ? (
+                    <SelectItem value="__none" disabled>No batches found</SelectItem>
+                  ) : batchOptions.map(b => <SelectItem key={b} value={b}>{b}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
 
           <div {...getRootProps()} className={`border-2 border-dashed rounded-xl p-12 text-center cursor-pointer transition-all ${isDragActive ? 'border-success bg-success/10 drag-zone-active' : 'border-border hover:border-primary/50'}`}>
             <input {...getInputProps()} />
@@ -135,7 +163,7 @@ const UploadDataset = () => {
 
           <div className="flex gap-3">
             <Button variant="outline" onClick={() => { setPhase('upload'); setCsvData([]); setErrors([]); }}>Back</Button>
-            <Button onClick={saveAttendance} disabled={saving || !subject} className="btn-shimmer">
+            <Button onClick={saveAttendance} disabled={saving || !subject || !batch} className="btn-shimmer">
               {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
               Save Attendance ({csvData.length - errors.length} valid records)
             </Button>
