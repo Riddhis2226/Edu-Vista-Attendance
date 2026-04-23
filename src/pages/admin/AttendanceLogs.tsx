@@ -133,11 +133,20 @@ const AttendanceLogs = () => {
             <SelectItem value="iot_dataset">📂 IoT Dataset</SelectItem>
           </SelectContent>
         </Select>
+        <Select value={recoveryFilter} onValueChange={onRecoveryChange}>
+          <SelectTrigger className="w-[180px] bg-muted/30"><SelectValue placeholder="Recovery Status" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Recovery Status</SelectItem>
+            <SelectItem value="safe">Safe (≥75%)</SelectItem>
+            <SelectItem value="at_risk">At Risk</SelectItem>
+            <SelectItem value="cannot_recover">Cannot Recover</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       <Card className="glass-card">
         <CardContent className="p-0">
-          {loading ? <div className="p-6"><SkeletonTable /></div> : sessions.length === 0 ? <EmptyState message="No attendance sessions found" /> : (
+          {loading ? <div className="p-6"><SkeletonTable /></div> : visibleSessions.length === 0 ? <EmptyState message="No attendance sessions found" /> : (
             <Table>
               <TableHeader>
                 <TableRow>
@@ -151,10 +160,13 @@ const AttendanceLogs = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {sessions.map((s, i) => (
+                {visibleSessions.map((s, i) => {
+                  const status = sessionRecoveryStatus.get(s.subject);
+                  const cannotBg = status === 'cannot_recover' ? 'bg-destructive/5' : '';
+                  return (
                   <React.Fragment key={s.id}>
                     <motion.tr initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.03 }}
-                      className="border-b border-border hover:bg-muted/20 cursor-pointer transition-all" onClick={() => toggleExpand(s.id)}>
+                      className={`border-b border-border hover:bg-muted/20 cursor-pointer transition-all ${cannotBg}`} onClick={() => toggleExpand(s.id)}>
                       <TableCell>{s.date}</TableCell>
                       <TableCell className="font-medium">{s.subject}</TableCell>
                       <TableCell>{s.faculty_name || '—'}</TableCell>
@@ -188,7 +200,8 @@ const AttendanceLogs = () => {
                       </td></tr>
                     )}
                   </React.Fragment>
-                ))}
+                  );
+                })}
               </TableBody>
             </Table>
           )}
