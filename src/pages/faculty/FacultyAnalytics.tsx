@@ -113,6 +113,7 @@ const FacultyAnalytics = () => {
   };
 
   const statusLabel = (r: SummaryRow) => {
+    if (r.total_lectures == null) return <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-muted-foreground" /> No Target</span>;
     if (!r.is_below_threshold) return <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-success" /> Safe</span>;
     if (r.can_recover) return <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-warning" /> At Risk</span>;
     return <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-destructive" /> Critical</span>;

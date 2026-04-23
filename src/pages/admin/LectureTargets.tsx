@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Pencil, Trash2, Search, X } from 'lucide-react';
+import { Plus, Pencil, Trash2, Search, X, Copy } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -75,6 +75,21 @@ const LectureTargets: React.FC = () => {
 
   const openAdd = () => { setEditing(null); setModalOpen(true); };
   const openEdit = (r: TargetRow) => { setEditing(r); setModalOpen(true); };
+  const openClone = (r: TargetRow) => {
+    // Pre-fill subject + total_lectures + faculty, but clear batch/semester and drop id so it's a new insert
+    setEditing({
+      id: undefined as any,
+      subject: r.subject,
+      faculty_id: r.faculty_id,
+      faculty_name: r.faculty_name,
+      total_lectures: r.total_lectures,
+      batch: '',
+      semester: '',
+      lectures_held: 0,
+    });
+    setModalOpen(true);
+    toast.info('Cloning target — set a new batch and semester');
+  };
 
   const doDelete = async (id: string) => {
     const { error } = await supabase.from('lecture_targets' as any).delete().eq('id', id);
@@ -144,7 +159,7 @@ const LectureTargets: React.FC = () => {
                   <TableHead>Total</TableHead>
                   <TableHead>Held</TableHead>
                   <TableHead className="w-[180px]">Completion</TableHead>
-                  <TableHead className="w-[120px]">Actions</TableHead>
+                  <TableHead className="w-[160px]">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -181,14 +196,18 @@ const LectureTargets: React.FC = () => {
                         </TableCell>
                         <TableCell>
                           <div className="flex gap-1">
-                            <Button size="icon" variant="ghost" onClick={() => openEdit(r)}>
+                            <Button size="icon" variant="ghost" onClick={() => openEdit(r)} title="Edit">
                               <Pencil className="h-4 w-4" />
+                            </Button>
+                            <Button size="icon" variant="ghost" onClick={() => openClone(r)} title="Duplicate to a new batch / semester">
+                              <Copy className="h-4 w-4" />
                             </Button>
                             <Button
                               size="icon"
                               variant="ghost"
                               onClick={() => setConfirmDelete(r.id)}
                               className={confirmDelete === r.id ? 'animate-shake text-destructive' : 'text-destructive'}
+                              title="Delete"
                             >
                               <Trash2 className="h-4 w-4" />
                             </Button>
