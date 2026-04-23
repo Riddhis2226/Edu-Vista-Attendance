@@ -160,6 +160,7 @@ const FaceEnrollment = () => {
                     <TableHead>Enrollment No.</TableHead>
                     <TableHead>Name</TableHead>
                     <TableHead>Program</TableHead>
+                    <TableHead>Batch</TableHead>
                     <TableHead>Face Status</TableHead>
                     <TableHead>Action</TableHead>
                   </TableRow>
@@ -171,6 +172,7 @@ const FaceEnrollment = () => {
                       <TableCell className="font-mono">{s.enrollment_no}</TableCell>
                       <TableCell>{s.full_name}</TableCell>
                       <TableCell>{s.program || '—'}</TableCell>
+                      <TableCell className="text-muted-foreground">{s.batch || '—'}</TableCell>
                       <TableCell>
                         <Badge variant={s.face_enrolled ? 'default' : 'destructive'} className={s.face_enrolled ? 'bg-success text-success-foreground' : ''}>
                           {s.face_enrolled ? '✓ Enrolled' : '✗ Not Enrolled'}
