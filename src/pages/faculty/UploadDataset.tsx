@@ -110,7 +110,8 @@ const UploadDataset = () => {
         }
 
         setCsvData(mapped);
-        const errs = mapped.map((r, i) => (!r.enrollment_no || !r.student_name) ? i : -1).filter((i) => i >= 0);
+        // Only flag rows that have NEITHER name nor enrollment — accept everything else
+        const errs = mapped.map((r, i) => (!r.enrollment_no && !r.student_name) ? i : -1).filter((i) => i >= 0);
         setErrors(errs);
         setPhase('preview');
       },
