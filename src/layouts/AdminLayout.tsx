@@ -3,7 +3,7 @@ import eduvistaLogo from '@/assets/eduvista-logo.png';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  GraduationCap, LayoutDashboard, Users, ScanFace, ClipboardList, UserCog, LogOut, Menu,
+  GraduationCap, LayoutDashboard, Users, ScanFace, ClipboardList, UserCog, LogOut, Menu, Target,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { NavLink } from '@/components/NavLink';
@@ -18,6 +18,7 @@ const adminNav = [
   { title: 'Students', url: '/admin/students', icon: Users },
   { title: 'Face Enrollment', url: '/admin/face-enrollment', icon: ScanFace },
   { title: 'Attendance Logs', url: '/admin/attendance-logs', icon: ClipboardList },
+  { title: 'Lecture Targets', url: '/admin/lecture-targets', icon: Target },
   { title: 'Faculty', url: '/admin/faculty', icon: UserCog },
 ];
 
