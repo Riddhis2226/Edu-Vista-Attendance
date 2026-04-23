@@ -118,7 +118,14 @@ const UploadDataset = () => {
   }, [batch]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
-    onDrop, accept: { 'text/csv': ['.csv'] }, maxFiles: 1,
+    onDrop,
+    accept: {
+      'text/csv': ['.csv'],
+      'text/tab-separated-values': ['.tsv'],
+      'text/plain': ['.txt'],
+      'application/vnd.ms-excel': ['.csv'],
+    },
+    maxFiles: 1,
   });
 
   const saveAttendance = async () => {
