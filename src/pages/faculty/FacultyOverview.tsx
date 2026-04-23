@@ -86,8 +86,67 @@ const FacultyOverview = () => {
               </div>
             </CardContent>
           </Card>
-        </motion.div>
-      </div>
+      </motion.div>
+
+      {/* Semester Lecture Targets */}
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }}>
+        <Card className="glass-card">
+          <CardContent className="p-6">
+            <h3 className="text-base font-semibold mb-4 flex items-center gap-2">
+              <TargetIcon className="h-4 w-4" /> Semester Lecture Targets
+            </h3>
+            {loading ? (
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                {[1, 2, 3].map((i) => <div key={i} className="h-40 skeleton-shimmer rounded-xl" />)}
+              </div>
+            ) : targets.length === 0 && orphanSubjects.length === 0 ? (
+              <EmptyState message="No lecture targets configured. Ask your administrator to set the total lectures for your subjects." />
+            ) : (
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                {targets.map((t, i) => {
+                  const held = sessionCounts.get(t.subject) || 0;
+                  const pct = t.total_lectures > 0 ? (held / t.total_lectures) * 100 : 0;
+                  const remaining = Math.max(0, t.total_lectures - held);
+                  return (
+                    <motion.div
+                      key={t.id}
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ delay: i * 0.05 }}
+                      className="p-4 rounded-xl bg-muted/20 border border-border flex flex-col items-center text-center"
+                    >
+                      <p className="font-semibold text-sm truncate w-full">{t.subject}</p>
+                      <p className="text-xs text-muted-foreground truncate w-full">{t.batch}</p>
+                      <p className="text-[10px] text-muted-foreground truncate w-full mb-2">{t.semester}</p>
+                      <AttendanceRing
+                        percentage={Math.min(100, pct)}
+                        size={88}
+                        strokeWidth={7}
+                        delay={i * 0.05}
+                        centerLabel={<span className="text-sm">{held}/{t.total_lectures}</span>}
+                        subLabel="conducted"
+                      />
+                      <p className="text-xs text-muted-foreground mt-2">
+                        {remaining} lecture{remaining === 1 ? '' : 's'} remaining
+                      </p>
+                    </motion.div>
+                  );
+                })}
+                {orphanSubjects.map((subj) => (
+                  <div
+                    key={subj}
+                    className="p-4 rounded-xl border border-warning/40 bg-warning/10 flex flex-col items-center justify-center text-center"
+                  >
+                    <p className="font-semibold text-sm truncate w-full">{subj}</p>
+                    <p className="text-xs text-warning mt-2">⏳ Total lectures not yet set by admin for this subject.</p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </motion.div>
+    </div>
 
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
         <Card className="glass-card">
