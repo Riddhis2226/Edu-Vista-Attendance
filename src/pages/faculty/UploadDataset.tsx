@@ -110,7 +110,8 @@ const UploadDataset = () => {
         }
 
         setCsvData(mapped);
-        const errs = mapped.map((r, i) => (!r.enrollment_no || !r.student_name) ? i : -1).filter((i) => i >= 0);
+        // Only flag rows that have NEITHER name nor enrollment — accept everything else
+        const errs = mapped.map((r, i) => (!r.enrollment_no && !r.student_name) ? i : -1).filter((i) => i >= 0);
         setErrors(errs);
         setPhase('preview');
       },
@@ -132,12 +133,26 @@ const UploadDataset = () => {
     if (!user) return;
     setSaving(true);
     const validData = csvData.filter((_, i) => !errors.includes(i));
-    const present = validData.filter(r => r.status === 'present').length;
-    const absent = validData.filter(r => r.status === 'absent').length;
 
-    // Look up student IDs
-    const { data: students } = await supabase.from('students').select('id, enrollment_no');
-    const studentMap = new Map((students || []).map(s => [s.enrollment_no, s.id]));
+    // Look up students by enrollment AND by name (within batch if provided)
+    let studentsQuery = supabase.from('students').select('id, enrollment_no, full_name');
+    if (batch) studentsQuery = studentsQuery.eq('batch', batch);
+    const { data: students } = await studentsQuery;
+
+    const byEnroll = new Map((students || []).map((s) => [s.enrollment_no, s]));
+    const normName = (s: string) => (s || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+    const byName = new Map((students || []).map((s) => [normName(s.full_name), s]));
+
+    // Resolve each row to a student record
+    const resolved = validData.map((r) => {
+      const match = (r.enrollment_no && byEnroll.get(r.enrollment_no)) || (r.student_name && byName.get(normName(r.student_name)));
+      return match
+        ? { ...r, student_id: match.id, enrollment_no: match.enrollment_no, student_name: match.full_name }
+        : null;
+    }).filter((r): r is NonNullable<typeof r> => r !== null);
+
+    const present = resolved.filter((r) => r.status === 'present').length;
+    const absent = resolved.filter((r) => r.status === 'absent').length;
 
     const { data: session, error } = await supabase.from('attendance_sessions').insert({
       subject, batch, faculty_id: user.id, faculty_name: userName, method: 'iot_dataset' as const,
@@ -146,20 +161,19 @@ const UploadDataset = () => {
 
     if (error || !session) { toast.error('Failed to save'); setSaving(false); return; }
 
-    const records = validData
-      .filter(r => studentMap.has(r.enrollment_no))
-      .map(r => ({
-        session_id: session.id,
-        student_id: studentMap.get(r.enrollment_no)!,
-        enrollment_no: r.enrollment_no,
-        student_name: r.student_name,
-        status: r.status as 'present' | 'absent',
-      }));
+    const records = resolved.map((r) => ({
+      session_id: session.id,
+      student_id: r.student_id,
+      enrollment_no: r.enrollment_no,
+      student_name: r.student_name,
+      status: r.status as 'present' | 'absent',
+    }));
 
     if (records.length > 0) await supabase.from('attendance_records').insert(records);
     setSaving(false);
     setPhase('saved');
-    toast.success(`Attendance saved! ${records.length} records.`);
+    const skipped = validData.length - resolved.length;
+    toast.success(`Attendance saved! ${records.length} records.${skipped > 0 ? ` ${skipped} unmatched rows skipped.` : ''}`);
   };
 
   return (
@@ -205,7 +219,7 @@ const UploadDataset = () => {
           {errors.length > 0 && (
             <div className="flex items-center gap-2 p-3 rounded-lg bg-destructive/10 text-destructive">
               <AlertTriangle className="h-4 w-4" />
-              <span>{errors.length} rows have missing data and will be skipped</span>
+              <span>{errors.length} completely empty rows will be skipped</span>
             </div>
           )}
 
