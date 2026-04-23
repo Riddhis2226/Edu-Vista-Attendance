@@ -20,6 +20,8 @@ const FacultyHistory = () => {
   const [records, setRecords] = useState<any[]>([]);
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
+  const [targetMap, setTargetMap] = useState<Map<string, number>>(new Map()); // subject -> total_lectures
+  const [lectureIndex, setLectureIndex] = useState<Map<string, number>>(new Map()); // session_id -> index
 
   useEffect(() => {
     if (!user) return;
@@ -28,8 +30,32 @@ const FacultyHistory = () => {
       let query = supabase.from('attendance_sessions').select('*').eq('faculty_id', user.id).order('date', { ascending: false });
       if (dateFrom) query = query.gte('date', dateFrom);
       if (dateTo) query = query.lte('date', dateTo);
-      const { data } = await query;
-      setSessions(data || []);
+      const [sessionsRes, targetsRes] = await Promise.all([
+        query,
+        supabase.from('lecture_targets' as any).select('subject, faculty_id, total_lectures').eq('faculty_id', user.id),
+      ]);
+      const data = sessionsRes.data || [];
+      setSessions(data);
+
+      // Build subject -> total_lectures map
+      const tMap = new Map<string, number>();
+      ((targetsRes.data as any[]) || []).forEach((t: any) => {
+        tMap.set(t.subject, t.total_lectures);
+      });
+      setTargetMap(tMap);
+
+      // Compute lecture index per session within its subject (chronological)
+      const bySubject = new Map<string, any[]>();
+      [...data].sort((a, b) => a.date.localeCompare(b.date)).forEach((s) => {
+        if (!bySubject.has(s.subject)) bySubject.set(s.subject, []);
+        bySubject.get(s.subject)!.push(s);
+      });
+      const idxMap = new Map<string, number>();
+      bySubject.forEach((list) => {
+        list.forEach((s, i) => idxMap.set(s.id, i + 1));
+      });
+      setLectureIndex(idxMap);
+
       setLoading(false);
     };
     fetch();
@@ -69,7 +95,21 @@ const FacultyHistory = () => {
                   <React.Fragment key={s.id}>
                     <motion.tr initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.03 }}
                       className="border-b border-border hover:bg-muted/20 cursor-pointer" onClick={() => toggleExpand(s.id)}>
-                      <TableCell>{s.date}</TableCell>
+                      <TableCell>
+                        <div className="flex flex-col gap-1">
+                          <span>{s.date}</span>
+                          {(() => {
+                            const idx = lectureIndex.get(s.id);
+                            const total = targetMap.get(s.subject);
+                            if (!idx) return null;
+                            return (
+                              <Badge variant="outline" className="w-fit text-[10px] text-muted-foreground border-muted-foreground/30">
+                                Lecture {idx}{total ? ` of ${total}` : ''}
+                              </Badge>
+                            );
+                          })()}
+                        </div>
+                      </TableCell>
                       <TableCell className="font-medium">{s.subject}</TableCell>
                       <TableCell><Badge variant="outline">{s.method === 'ai_photo' ? '📷' : '📂'}</Badge></TableCell>
                       <TableCell className="text-success">{s.total_present || 0}</TableCell>
