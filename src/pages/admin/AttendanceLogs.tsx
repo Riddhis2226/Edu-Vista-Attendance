@@ -1,6 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Download, ExternalLink, ChevronDown, ChevronUp } from 'lucide-react';
+import { Download, ChevronDown, ChevronUp } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -13,14 +14,21 @@ import SkeletonTable from '@/components/SkeletonTable';
 import EmptyState from '@/components/EmptyState';
 import { toast } from 'sonner';
 
+type RecoveryFilter = 'all' | 'safe' | 'at_risk' | 'cannot_recover';
+
 const AttendanceLogs = () => {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [sessions, setSessions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState<string | null>(null);
   const [records, setRecords] = useState<any[]>([]);
+  const [summary, setSummary] = useState<any[]>([]);
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
   const [methodFilter, setMethodFilter] = useState('all');
+  const [recoveryFilter, setRecoveryFilter] = useState<RecoveryFilter>(
+    (searchParams.get('recovery') as RecoveryFilter) || 'all'
+  );
 
   useEffect(() => {
     const fetch = async () => {
@@ -29,12 +37,51 @@ const AttendanceLogs = () => {
       if (dateFrom) query = query.gte('date', dateFrom);
       if (dateTo) query = query.lte('date', dateTo);
       if (methodFilter !== 'all') query = query.eq('method', methodFilter as 'ai_photo' | 'iot_dataset');
-      const { data } = await query;
+      const [{ data }, { data: sum }] = await Promise.all([
+        query,
+        supabase.from('student_attendance_summary' as any).select('*'),
+      ]);
       setSessions(data || []);
+      setSummary((sum as any[]) || []);
       setLoading(false);
     };
     fetch();
   }, [dateFrom, dateTo, methodFilter]);
+
+  // Build subject -> recovery classification (worst student in that subject's batch)
+  const sessionRecoveryStatus = useMemo(() => {
+    const map = new Map<string, RecoveryFilter>();
+    const bySubject = new Map<string, any[]>();
+    summary.forEach((r) => {
+      if (!bySubject.has(r.subject)) bySubject.set(r.subject, []);
+      bySubject.get(r.subject)!.push(r);
+    });
+    bySubject.forEach((rows, subject) => {
+      const hasCannot = rows.some((r) => r.total_lectures > 0 && r.is_below_threshold && !r.can_recover);
+      const hasAtRisk = rows.some((r) => r.is_below_threshold);
+      if (hasCannot) map.set(subject, 'cannot_recover');
+      else if (hasAtRisk) map.set(subject, 'at_risk');
+      else map.set(subject, 'safe');
+    });
+    return map;
+  }, [summary]);
+
+  const visibleSessions = useMemo(() => {
+    if (recoveryFilter === 'all') return sessions;
+    return sessions.filter((s) => sessionRecoveryStatus.get(s.subject) === recoveryFilter);
+  }, [sessions, recoveryFilter, sessionRecoveryStatus]);
+
+  const onRecoveryChange = (v: string) => {
+    const val = v as RecoveryFilter;
+    setRecoveryFilter(val);
+    if (val === 'all') {
+      searchParams.delete('recovery');
+      setSearchParams(searchParams);
+    } else {
+      searchParams.set('recovery', val);
+      setSearchParams(searchParams);
+    }
+  };
 
   const toggleExpand = async (sessionId: string) => {
     if (expanded === sessionId) { setExpanded(null); return; }
@@ -46,7 +93,25 @@ const AttendanceLogs = () => {
   const exportCsv = (session: any) => {
     const filtered = records.filter(r => r.session_id === session.id);
     if (filtered.length === 0) { toast.error('Expand the session first'); return; }
-    const csv = ['Enrollment No,Student Name,Status,Confidence', ...filtered.map((r: any) => `${r.enrollment_no},${r.student_name},${r.status},${r.confidence || ''}`),].join('\n');
+    const summaryByStudent = new Map<string, any>();
+    summary.filter((r) => r.subject === session.subject).forEach((r) => {
+      summaryByStudent.set(r.enrollment_no, r);
+    });
+    const header = 'Enrollment No,Student Name,Status,Confidence,Total Lectures,Lectures Held,Attendance %,Lectures Needed,Recovery Possible';
+    const csv = [header, ...filtered.map((r: any) => {
+      const s = summaryByStudent.get(r.enrollment_no);
+      return [
+        r.enrollment_no,
+        r.student_name,
+        r.status,
+        r.confidence || '',
+        s?.total_lectures ?? '',
+        s?.lectures_held ?? '',
+        s?.attendance_percentage ?? '',
+        s?.lectures_needed ?? '',
+        s ? (s.can_recover ? 'yes' : 'no') : '',
+      ].join(',');
+    })].join('\n');
     const blob = new Blob([csv], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
