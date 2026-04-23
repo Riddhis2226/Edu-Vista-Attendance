@@ -219,7 +219,7 @@ const UploadDataset = () => {
           {errors.length > 0 && (
             <div className="flex items-center gap-2 p-3 rounded-lg bg-destructive/10 text-destructive">
               <AlertTriangle className="h-4 w-4" />
-              <span>{errors.length} rows have missing data and will be skipped</span>
+              <span>{errors.length} completely empty rows will be skipped</span>
             </div>
           )}
 
