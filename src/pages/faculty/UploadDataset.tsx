@@ -40,18 +40,44 @@ const UploadDataset = () => {
     if (!file) return;
     setParseProgress(0);
     const interval = setInterval(() => setParseProgress(p => Math.min(p + 20, 90)), 200);
+
+    // Normalize header: lowercase + strip non-alphanumerics
+    const norm = (s: string) => (s || '').toString().toLowerCase().replace(/[^a-z0-9]/g, '');
+
+    const ENROLL_KEYS = ['enrollmentno', 'enrollmentnumber', 'enrollment', 'enrolno', 'enrolmentno', 'enrolment', 'rollno', 'roll', 'rollnumber', 'studentid', 'sid', 'id', 'regno', 'registrationno', 'registration', 'admissionno'];
+    const NAME_KEYS = ['studentname', 'fullname', 'name', 'student', 'sname', 'candidatename'];
+    const STATUS_KEYS = ['status', 'attendance', 'present', 'attendancestatus'];
+
+    const pick = (row: Record<string, any>, normMap: Record<string, string>, keys: string[]) => {
+      for (const k of keys) {
+        const original = normMap[k];
+        if (original !== undefined) {
+          const v = row[original];
+          if (v !== undefined && v !== null && String(v).trim() !== '') return String(v).trim();
+        }
+      }
+      return '';
+    };
+
     Papa.parse(file, {
       header: true, skipEmptyLines: true,
       complete: (results) => {
         clearInterval(interval);
         setParseProgress(100);
-        const mapped = results.data.map((row: any) => ({
-          enrollment_no: row.enrollment_no || row['Enrollment No'] || row['enrollment_no'] || '',
-          student_name: row.student_name || row['Student Name'] || row['Name'] || row['full_name'] || '',
-          status: (row.status || row['Status'] || 'present').toLowerCase().includes('absent') ? 'absent' : 'present',
-        }));
+        const fields = ((results.meta?.fields as string[]) || []);
+        const normMap: Record<string, string> = {};
+        fields.forEach(f => { normMap[norm(f)] = f; });
+
+        const mapped = (results.data as any[]).map((row) => {
+          const enrollment_no = pick(row, normMap, ENROLL_KEYS);
+          const student_name = pick(row, normMap, NAME_KEYS);
+          const statusRaw = pick(row, normMap, STATUS_KEYS) || 'present';
+          const sl = statusRaw.toLowerCase();
+          const status = sl.includes('absent') || sl === 'a' || sl === '0' || sl === 'false' ? 'absent' : 'present';
+          return { enrollment_no, student_name, status };
+        });
         setCsvData(mapped);
-        const errs = mapped.map((r: any, i: number) => (!r.enrollment_no || !r.student_name) ? i : -1).filter((i: number) => i >= 0);
+        const errs = mapped.map((r, i) => (!r.enrollment_no || !r.student_name) ? i : -1).filter((i) => i >= 0);
         setErrors(errs);
         setPhase('preview');
       },
