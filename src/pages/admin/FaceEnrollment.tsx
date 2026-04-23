@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 import TypewriterText from '@/components/TypewriterText';
 import SkeletonTable from '@/components/SkeletonTable';
@@ -18,6 +19,10 @@ const FaceEnrollment = () => {
   const [students, setStudents] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [programFilter, setProgramFilter] = useState<string>('all');
+  const [batchFilter, setBatchFilter] = useState<string>('all');
+  const [programs, setPrograms] = useState<string[]>([]);
+  const [batches, setBatches] = useState<string[]>([]);
   const [selected, setSelected] = useState<any | null>(null);
   const [mode, setMode] = useState<'upload' | 'camera' | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
@@ -26,14 +31,27 @@ const FaceEnrollment = () => {
   const [enrolled, setEnrolled] = useState(false);
   const webcamRef = React.useRef<Webcam>(null);
 
+  // Load distinct programs & batches once
+  useEffect(() => {
+    (async () => {
+      const { data } = await supabase.from('students').select('program, batch');
+      if (data) {
+        setPrograms([...new Set(data.map((d: any) => d.program).filter(Boolean))].sort() as string[]);
+        setBatches([...new Set(data.map((d: any) => d.batch).filter(Boolean))].sort() as string[]);
+      }
+    })();
+  }, []);
+
   const fetchStudents = useCallback(async () => {
     setLoading(true);
     let query = supabase.from('students').select('*').order('full_name');
     if (search) query = query.or(`full_name.ilike.%${search}%,enrollment_no.ilike.%${search}%`);
+    if (programFilter !== 'all') query = query.eq('program', programFilter);
+    if (batchFilter !== 'all') query = query.eq('batch', batchFilter);
     const { data } = await query;
     setStudents(data || []);
     setLoading(false);
-  }, [search]);
+  }, [search, programFilter, batchFilter]);
 
   useEffect(() => { fetchStudents(); }, [fetchStudents]);
 
@@ -105,9 +123,31 @@ const FaceEnrollment = () => {
     <div className="space-y-6">
       <h1 className="text-2xl font-bold"><TypewriterText text="Face Enrollment" /></h1>
 
-      <div className="relative max-w-md">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input placeholder="Search students..." className="pl-9 bg-muted/30" value={search} onChange={(e) => setSearch(e.target.value)} />
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="relative flex-1 min-w-[220px] max-w-md">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input placeholder="Search students..." className="pl-9 bg-muted/30" value={search} onChange={(e) => setSearch(e.target.value)} />
+        </div>
+        <Select value={programFilter} onValueChange={setProgramFilter}>
+          <SelectTrigger className="w-[200px] bg-muted/30"><SelectValue placeholder="Program" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Programs</SelectItem>
+            {programs.map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}
+          </SelectContent>
+        </Select>
+        <Select value={batchFilter} onValueChange={setBatchFilter}>
+          <SelectTrigger className="w-[170px] bg-muted/30"><SelectValue placeholder="Batch" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Batches</SelectItem>
+            {batches.map((b) => <SelectItem key={b} value={b}>{b}</SelectItem>)}
+          </SelectContent>
+        </Select>
+        {(programFilter !== 'all' || batchFilter !== 'all' || search) && (
+          <Button variant="ghost" size="sm" onClick={() => { setSearch(''); setProgramFilter('all'); setBatchFilter('all'); }}>
+            Clear
+          </Button>
+        )}
+        <span className="text-sm text-muted-foreground ml-auto">{students.length} student{students.length !== 1 ? 's' : ''}</span>
       </div>
 
       <Card className="glass-card">
@@ -120,6 +160,7 @@ const FaceEnrollment = () => {
                     <TableHead>Enrollment No.</TableHead>
                     <TableHead>Name</TableHead>
                     <TableHead>Program</TableHead>
+                    <TableHead>Batch</TableHead>
                     <TableHead>Face Status</TableHead>
                     <TableHead>Action</TableHead>
                   </TableRow>
@@ -131,6 +172,7 @@ const FaceEnrollment = () => {
                       <TableCell className="font-mono">{s.enrollment_no}</TableCell>
                       <TableCell>{s.full_name}</TableCell>
                       <TableCell>{s.program || '—'}</TableCell>
+                      <TableCell className="text-muted-foreground">{s.batch || '—'}</TableCell>
                       <TableCell>
                         <Badge variant={s.face_enrolled ? 'default' : 'destructive'} className={s.face_enrolled ? 'bg-success text-success-foreground' : ''}>
                           {s.face_enrolled ? '✓ Enrolled' : '✗ Not Enrolled'}
