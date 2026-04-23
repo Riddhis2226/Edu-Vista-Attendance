@@ -48,12 +48,14 @@ const UploadDataset = () => {
     const NAME_KEYS = ['studentname', 'fullname', 'name', 'student', 'sname', 'candidatename'];
     const STATUS_KEYS = ['status', 'attendance', 'present', 'attendancestatus'];
 
+    const collapseWs = (s: string) => s.replace(/\s+/g, ' ').trim();
+
     const pick = (row: Record<string, any>, normMap: Record<string, string>, keys: string[]) => {
       for (const k of keys) {
         const original = normMap[k];
         if (original !== undefined) {
           const v = row[original];
-          if (v !== undefined && v !== null && String(v).trim() !== '') return String(v).trim();
+          if (v !== undefined && v !== null && String(v).trim() !== '') return collapseWs(String(v));
         }
       }
       return '';
@@ -61,9 +63,10 @@ const UploadDataset = () => {
 
     Papa.parse(file, {
       header: true,
-      skipEmptyLines: true,
+      skipEmptyLines: 'greedy',
       delimitersToGuess: [',', ';', '\t', '|'],
-      transformHeader: (header) => header.replace(/^\ufeff/, '').trim(),
+      transformHeader: (header) => header.replace(/^\ufeff/, '').replace(/\s+/g, ' ').trim(),
+      transform: (value) => (typeof value === 'string' ? value.replace(/^\ufeff/, '').trim() : value),
       complete: async (results) => {
         clearInterval(interval);
         setParseProgress(100);
@@ -115,7 +118,14 @@ const UploadDataset = () => {
   }, [batch]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
-    onDrop, accept: { 'text/csv': ['.csv'] }, maxFiles: 1,
+    onDrop,
+    accept: {
+      'text/csv': ['.csv'],
+      'text/tab-separated-values': ['.tsv'],
+      'text/plain': ['.txt'],
+      'application/vnd.ms-excel': ['.csv'],
+    },
+    maxFiles: 1,
   });
 
   const saveAttendance = async () => {
