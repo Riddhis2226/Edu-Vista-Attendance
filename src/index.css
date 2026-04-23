@@ -224,6 +224,29 @@
   to { --border-angle: 360deg; }
 }
 
+/* Diagonal stripe pattern (recovery "needed" segment) */
+@keyframes stripe-scroll {
+  from { background-position: 0 0; }
+  to { background-position: 28px 0; }
+}
+
+.stripe-pattern {
+  background-image: repeating-linear-gradient(
+    45deg,
+    hsl(18 100% 58%) 0,
+    hsl(18 100% 58%) 6px,
+    hsl(18 100% 58% / 0.55) 6px,
+    hsl(18 100% 58% / 0.55) 14px
+  );
+  background-size: 28px 28px;
+  animation: stripe-scroll 2s linear infinite;
+}
+
+/* Cannot-recover glow */
+.cannot-recover-glow {
+  box-shadow: 0 0 8px rgba(255, 77, 109, 0.4);
+}
+
 /* Reduced motion */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {

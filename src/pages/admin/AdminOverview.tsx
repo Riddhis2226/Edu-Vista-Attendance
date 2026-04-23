@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { Users, UserCog, TrendingUp, Activity } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Users, UserCog, TrendingUp, Activity, AlertOctagon } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import StatCard from '@/components/StatCard';
 import TypewriterText from '@/components/TypewriterText';
@@ -12,7 +13,8 @@ import {
 import { motion } from 'framer-motion';
 
 const AdminOverview = () => {
-  const [stats, setStats] = useState({ students: 0, faculty: 0, todayPct: 0, activeSessions: 0 });
+  const navigate = useNavigate();
+  const [stats, setStats] = useState({ students: 0, faculty: 0, todayPct: 0, activeSessions: 0, cannotRecover: 0 });
   const [trendData, setTrendData] = useState<any[]>([]);
   const [deptData, setDeptData] = useState<any[]>([]);
   const [lowAttendance, setLowAttendance] = useState<any[]>([]);
@@ -37,7 +39,14 @@ const AdminOverview = () => {
     const todayTotal = todaySessions.reduce((acc, s) => acc + (s.total_present || 0) + (s.total_absent || 0), 0);
     const todayPct = todayTotal > 0 ? Math.round((todayPresent / todayTotal) * 100) : 0;
 
-    setStats({ students: totalStudents, faculty: totalFaculty, todayPct, activeSessions });
+    // Cannot Recover count from summary view
+    const { data: summary } = await supabase.from('student_attendance_summary' as any).select('student_id, can_recover, total_lectures');
+    const cannotSet = new Set<string>();
+    (summary as any[] || []).forEach((r: any) => {
+      if (r.total_lectures > 0 && r.can_recover === false) cannotSet.add(r.student_id);
+    });
+
+    setStats({ students: totalStudents, faculty: totalFaculty, todayPct, activeSessions, cannotRecover: cannotSet.size });
 
     // Build 30-day trend from real session data
     const allSessions = allSessionsRes.data || [];
@@ -140,6 +149,34 @@ const AdminOverview = () => {
         <StatCard title="Today's Attendance" value={stats.todayPct} suffix="%" icon={TrendingUp} color="text-success" delay={2} />
         <StatCard title="Active Sessions" value={stats.activeSessions} icon={Activity} color="text-warning" delay={3} />
       </div>
+
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.25 }}
+        onClick={() => navigate('/admin/attendance-logs?recovery=cannot_recover')}
+        className="cursor-pointer"
+      >
+        <Card className={`glass-card border-destructive/40 hover:border-destructive/70 transition-all ${stats.cannotRecover > 0 ? 'cannot-recover-glow' : ''}`}>
+          <CardContent className="p-4 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="relative">
+                <AlertOctagon className="h-6 w-6 text-destructive" />
+                {stats.cannotRecover > 0 && (
+                  <span className="absolute -top-1 -right-1 h-2.5 w-2.5 rounded-full bg-destructive animate-ping" />
+                )}
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Cannot Recover</p>
+                <p className="text-2xl font-bold text-destructive">{stats.cannotRecover}</p>
+              </div>
+            </div>
+            <p className="text-xs text-muted-foreground max-w-xs text-right">
+              Students who mathematically cannot reach 75% this semester. Click to view.
+            </p>
+          </CardContent>
+        </Card>
+      </motion.div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>

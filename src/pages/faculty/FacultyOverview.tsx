@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Camera, FileSpreadsheet, Clock, BookOpen } from 'lucide-react';
+import { Camera, FileSpreadsheet, Clock, BookOpen, Target as TargetIcon } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent } from '@/components/ui/card';
@@ -9,19 +9,40 @@ import { Badge } from '@/components/ui/badge';
 import TypewriterText from '@/components/TypewriterText';
 import StatCard from '@/components/StatCard';
 import EmptyState from '@/components/EmptyState';
+import AttendanceRing from '@/components/faculty/AttendanceRing';
 
 const FacultyOverview = () => {
   const { user, userName } = useAuth();
   const navigate = useNavigate();
   const [recentSessions, setRecentSessions] = useState<any[]>([]);
+  const [targets, setTargets] = useState<any[]>([]);
+  const [sessionCounts, setSessionCounts] = useState<Map<string, number>>(new Map());
+  const [orphanSubjects, setOrphanSubjects] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!user) return;
     const fetch = async () => {
-      const { data } = await supabase.from('attendance_sessions')
-        .select('*').eq('faculty_id', user.id).order('created_at', { ascending: false }).limit(5);
-      setRecentSessions(data || []);
+      const [recentRes, targetsRes, sessionsRes] = await Promise.all([
+        supabase.from('attendance_sessions').select('*').eq('faculty_id', user.id).order('created_at', { ascending: false }).limit(5),
+        supabase.from('lecture_targets' as any).select('*').eq('faculty_id', user.id),
+        supabase.from('attendance_sessions').select('subject').eq('faculty_id', user.id),
+      ]);
+      setRecentSessions(recentRes.data || []);
+      setTargets((targetsRes.data as any[]) || []);
+
+      // Count sessions per subject
+      const counts = new Map<string, number>();
+      (sessionsRes.data || []).forEach((s: any) => {
+        counts.set(s.subject, (counts.get(s.subject) || 0) + 1);
+      });
+      setSessionCounts(counts);
+
+      // Find subjects with sessions but no target
+      const targetSubjects = new Set(((targetsRes.data as any[]) || []).map((t: any) => t.subject));
+      const orphans = Array.from(counts.keys()).filter((s) => !targetSubjects.has(s));
+      setOrphanSubjects(orphans);
+
       setLoading(false);
     };
     fetch();
@@ -67,6 +88,65 @@ const FacultyOverview = () => {
           </Card>
         </motion.div>
       </div>
+
+      {/* Semester Lecture Targets */}
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }}>
+        <Card className="glass-card">
+          <CardContent className="p-6">
+            <h3 className="text-base font-semibold mb-4 flex items-center gap-2">
+              <TargetIcon className="h-4 w-4" /> Semester Lecture Targets
+            </h3>
+            {loading ? (
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                {[1, 2, 3].map((i) => <div key={i} className="h-40 skeleton-shimmer rounded-xl" />)}
+              </div>
+            ) : targets.length === 0 && orphanSubjects.length === 0 ? (
+              <EmptyState message="No lecture targets configured. Ask your administrator to set the total lectures for your subjects." />
+            ) : (
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                {targets.map((t, i) => {
+                  const held = sessionCounts.get(t.subject) || 0;
+                  const pct = t.total_lectures > 0 ? (held / t.total_lectures) * 100 : 0;
+                  const remaining = Math.max(0, t.total_lectures - held);
+                  return (
+                    <motion.div
+                      key={t.id}
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ delay: i * 0.05 }}
+                      className="p-4 rounded-xl bg-muted/20 border border-border flex flex-col items-center text-center"
+                    >
+                      <p className="font-semibold text-sm truncate w-full">{t.subject}</p>
+                      <p className="text-xs text-muted-foreground truncate w-full">{t.batch}</p>
+                      <p className="text-[10px] text-muted-foreground truncate w-full mb-2">{t.semester}</p>
+                      <AttendanceRing
+                        percentage={Math.min(100, pct)}
+                        size={88}
+                        strokeWidth={7}
+                        delay={i * 0.05}
+                        centerLabel={<span className="text-sm">{held}/{t.total_lectures}</span>}
+                        subLabel="conducted"
+                      />
+                      <p className="text-xs text-muted-foreground mt-2">
+                        {remaining} lecture{remaining === 1 ? '' : 's'} remaining
+                      </p>
+                    </motion.div>
+                  );
+                })}
+                {orphanSubjects.map((subj) => (
+                  <div
+                    key={subj}
+                    className="p-4 rounded-xl border border-warning/40 bg-warning/10 flex flex-col items-center justify-center text-center"
+                  >
+                    <p className="font-semibold text-sm truncate w-full">{subj}</p>
+                    <p className="text-xs text-warning mt-2">⏳ Total lectures not yet set by admin for this subject.</p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </motion.div>
 
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
         <Card className="glass-card">
