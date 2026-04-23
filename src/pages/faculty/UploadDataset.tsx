@@ -41,8 +41,8 @@ const UploadDataset = () => {
     setParseProgress(0);
     const interval = setInterval(() => setParseProgress(p => Math.min(p + 20, 90)), 200);
 
-    // Normalize header: lowercase + strip non-alphanumerics
     const norm = (s: string) => (s || '').toString().toLowerCase().replace(/[^a-z0-9]/g, '');
+    const normName = (s: string) => norm(s).replace(/^(mr|mrs|ms|miss|dr)/, '');
 
     const ENROLL_KEYS = ['enrollmentno', 'enrollmentnumber', 'enrollment', 'enrolno', 'enrolmentno', 'enrolment', 'rollno', 'roll', 'rollnumber', 'studentid', 'sid', 'id', 'regno', 'registrationno', 'registration', 'admissionno'];
     const NAME_KEYS = ['studentname', 'fullname', 'name', 'student', 'sname', 'candidatename'];
@@ -60,15 +60,21 @@ const UploadDataset = () => {
     };
 
     Papa.parse(file, {
-      header: true, skipEmptyLines: true,
-      complete: (results) => {
+      header: true,
+      skipEmptyLines: true,
+      delimitersToGuess: [',', ';', '\t', '|'],
+      transformHeader: (header) => header.replace(/^\ufeff/, '').trim(),
+      complete: async (results) => {
         clearInterval(interval);
         setParseProgress(100);
+
         const fields = ((results.meta?.fields as string[]) || []);
         const normMap: Record<string, string> = {};
-        fields.forEach(f => { normMap[norm(f)] = f; });
+        fields.forEach((f) => {
+          normMap[norm(f)] = f;
+        });
 
-        const mapped = (results.data as any[]).map((row) => {
+        const parsedRows = (results.data as any[]).map((row) => {
           const enrollment_no = pick(row, normMap, ENROLL_KEYS);
           const student_name = pick(row, normMap, NAME_KEYS);
           const statusRaw = pick(row, normMap, STATUS_KEYS) || 'present';
@@ -76,13 +82,37 @@ const UploadDataset = () => {
           const status = sl.includes('absent') || sl === 'a' || sl === '0' || sl === 'false' ? 'absent' : 'present';
           return { enrollment_no, student_name, status };
         });
+
+        let mapped = parsedRows;
+
+        if (batch) {
+          const missingEnrollmentRows = parsedRows.filter((row) => !row.enrollment_no && row.student_name);
+          if (missingEnrollmentRows.length > 0) {
+            const { data: batchStudents } = await supabase
+              .from('students')
+              .select('enrollment_no, full_name')
+              .eq('batch', batch);
+
+            if (batchStudents?.length) {
+              const studentMap = new Map(batchStudents.map((student) => [normName(student.full_name), student.enrollment_no]));
+              mapped = parsedRows.map((row) => {
+                if (row.enrollment_no || !row.student_name) return row;
+                return {
+                  ...row,
+                  enrollment_no: studentMap.get(normName(row.student_name)) || '',
+                };
+              });
+            }
+          }
+        }
+
         setCsvData(mapped);
         const errs = mapped.map((r, i) => (!r.enrollment_no || !r.student_name) ? i : -1).filter((i) => i >= 0);
         setErrors(errs);
         setPhase('preview');
       },
     });
-  }, []);
+  }, [batch]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop, accept: { 'text/csv': ['.csv'] }, maxFiles: 1,
