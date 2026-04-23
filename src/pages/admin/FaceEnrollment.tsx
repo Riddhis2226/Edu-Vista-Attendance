@@ -19,6 +19,10 @@ const FaceEnrollment = () => {
   const [students, setStudents] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [programFilter, setProgramFilter] = useState<string>('all');
+  const [batchFilter, setBatchFilter] = useState<string>('all');
+  const [programs, setPrograms] = useState<string[]>([]);
+  const [batches, setBatches] = useState<string[]>([]);
   const [selected, setSelected] = useState<any | null>(null);
   const [mode, setMode] = useState<'upload' | 'camera' | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
@@ -27,14 +31,27 @@ const FaceEnrollment = () => {
   const [enrolled, setEnrolled] = useState(false);
   const webcamRef = React.useRef<Webcam>(null);
 
+  // Load distinct programs & batches once
+  useEffect(() => {
+    (async () => {
+      const { data } = await supabase.from('students').select('program, batch');
+      if (data) {
+        setPrograms([...new Set(data.map((d: any) => d.program).filter(Boolean))].sort() as string[]);
+        setBatches([...new Set(data.map((d: any) => d.batch).filter(Boolean))].sort() as string[]);
+      }
+    })();
+  }, []);
+
   const fetchStudents = useCallback(async () => {
     setLoading(true);
     let query = supabase.from('students').select('*').order('full_name');
     if (search) query = query.or(`full_name.ilike.%${search}%,enrollment_no.ilike.%${search}%`);
+    if (programFilter !== 'all') query = query.eq('program', programFilter);
+    if (batchFilter !== 'all') query = query.eq('batch', batchFilter);
     const { data } = await query;
     setStudents(data || []);
     setLoading(false);
-  }, [search]);
+  }, [search, programFilter, batchFilter]);
 
   useEffect(() => { fetchStudents(); }, [fetchStudents]);
 
