@@ -62,8 +62,45 @@ const UploadPhoto = () => {
     setSteps(prev => prev.map((s, i) => i === idx ? { ...s, status } : s));
   };
 
+  const fileToBase64 = (f: File): Promise<string> => new Promise((resolve, reject) => {
+    const r = new FileReader();
+    r.onload = () => resolve(r.result as string);
+    r.onerror = reject;
+    r.readAsDataURL(f);
+  });
+
   const startRecognition = async () => {
-    toast.error('Face recognition is currently unavailable. Please use the Dataset upload method instead.');
+    if (files.length === 0 || !subject || !batch) return;
+    setPhase('processing');
+    try {
+      updateStep(0, 'active');
+      const images = await Promise.all(files.map(fileToBase64));
+      updateStep(0, 'done');
+
+      updateStep(1, 'active');
+      const { data, error } = await supabase.functions.invoke('luxand-recognize', {
+        body: { batch, images },
+      });
+      updateStep(1, 'done');
+      if (error) throw error;
+      if (!data?.success) throw new Error(data?.error || 'Recognition failed');
+
+      updateStep(2, 'done');
+      updateStep(3, 'done');
+      updateStep(4, 'done');
+
+      if (data.enrolled_count === 0) {
+        toast.warning('No students in this batch have enrolled faces yet.');
+      } else {
+        toast.success(`Matched ${data.matched_count} of ${data.enrolled_count} enrolled students.`);
+      }
+      setResults(data.results || []);
+      setPhase('results');
+    } catch (e: any) {
+      toast.error(e?.message || 'Recognition failed');
+      setPhase('upload');
+      setSteps(prev => prev.map(s => ({ ...s, status: 'pending' })));
+    }
   };
 
   const saveAttendance = async () => {

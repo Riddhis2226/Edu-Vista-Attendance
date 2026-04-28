@@ -80,7 +80,23 @@ const FaceEnrollment = () => {
   };
 
   const handleEnroll = async () => {
-    toast.error('Face enrollment is currently unavailable.');
+    if (!selected || !preview) return;
+    setEnrolling(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('luxand-enroll', {
+        body: { student_id: selected.id, image_base64: preview },
+      });
+      if (error) throw error;
+      if (!data?.success) throw new Error(data?.error || 'Enrollment failed');
+      setEnrolled(true);
+      toast.success('Face enrolled successfully!');
+      fetchStudents();
+      setTimeout(() => { setSelected(null); setPreview(null); setMode(null); setEnrolled(false); }, 1800);
+    } catch (e: any) {
+      toast.error(e?.message || 'Enrollment failed');
+    } finally {
+      setEnrolling(false);
+    }
   };
 
   return (
