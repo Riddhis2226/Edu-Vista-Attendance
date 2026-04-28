@@ -68,7 +68,8 @@ Deno.serve(async (req) => {
     if (student.luxand_person_uuid) {
       // Add another face to existing person
       const fd = new FormData();
-      fd.append("photo", publicUrl);
+      fd.append("photos", publicUrl);
+      fd.append("store", "1");
       luxandRes = await fetch(
         `https://api.luxand.cloud/v2/person/${student.luxand_person_uuid}`,
         { method: "POST", headers: { token: LUXAND_TOKEN }, body: fd },
