@@ -36,7 +36,7 @@ const UploadPhoto = () => {
   const [phase, setPhase] = useState<'upload' | 'processing' | 'results'>('upload');
   const [steps, setSteps] = useState<{ label: string; status: StepStatus }[]>([
     { label: 'Uploading Photos', status: 'pending' },
-    { label: 'Sending to Azure Face API', status: 'pending' },
+    { label: 'Sending to Face Recognition Engine', status: 'pending' },
     { label: 'Detecting Faces', status: 'pending' },
     { label: 'Matching Students', status: 'pending' },
     { label: 'Generating Report', status: 'pending' },
@@ -63,57 +63,7 @@ const UploadPhoto = () => {
   };
 
   const startRecognition = async () => {
-    setPhase('processing');
-
-    try {
-      // Step 1: Upload photos
-      updateStep(0, 'active');
-      const formData = new FormData();
-      formData.append('subject', subject);
-      files.forEach((f, i) => formData.append(`image_${i}`, f));
-      updateStep(0, 'done');
-
-      // Step 2: Send to Azure Face API
-      updateStep(1, 'active');
-      const { data: sessionData } = await supabase.auth.getSession();
-      const token = sessionData?.session?.access_token;
-
-      const res = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/recognize-faces`,
-        {
-          method: 'POST',
-          headers: { Authorization: `Bearer ${token}` },
-          body: formData,
-        }
-      );
-      updateStep(1, 'done');
-
-      // Step 3: Detecting Faces
-      updateStep(2, 'active');
-      const result = await res.json();
-      if (!res.ok) {
-        toast.error(result.error || 'Recognition failed');
-        setPhase('upload');
-        return;
-      }
-      updateStep(2, 'done');
-
-      // Step 4: Matching Students
-      updateStep(3, 'active');
-      await new Promise(r => setTimeout(r, 500));
-      updateStep(3, 'done');
-
-      // Step 5: Generating Report
-      updateStep(4, 'active');
-      await new Promise(r => setTimeout(r, 400));
-      updateStep(4, 'done');
-
-      setResults(result.results || []);
-      setPhase('results');
-    } catch (err: any) {
-      toast.error(err.message || 'Recognition failed');
-      setPhase('upload');
-    }
+    toast.error('Face recognition is currently unavailable. Please use the Dataset upload method instead.');
   };
 
   const saveAttendance = async () => {
