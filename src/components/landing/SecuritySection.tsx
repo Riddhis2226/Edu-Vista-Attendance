@@ -3,9 +3,9 @@ import { motion, useInView } from 'framer-motion';
 import { Check } from 'lucide-react';
 
 const bullets = [
-  'Face embeddings stored exclusively in Azure — never in your database',
+  'Face embeddings handled by an isolated recognition service — never in your database',
   'Student metadata isolated with Row-Level Security',
-  'azure_person_id is the only link — a non-reversible reference',
+  'Only a non-reversible reference ID links a student to their biometric template',
   'All API calls encrypted in transit with TLS 1.2+',
 ];
 
@@ -71,7 +71,7 @@ const SecuritySection: React.FC = () => {
             </span>
           </h2>
           <p className="text-muted-foreground mt-4 mb-6 leading-relaxed">
-            EduVista separates biometric processing from data storage. Azure handles face detection and matching; your database only stores metadata and attendance records.
+            EduVista separates biometric processing from data storage. A dedicated AI service handles face detection and matching; your database only stores metadata and attendance records.
           </p>
           <div className="space-y-3">
             {bullets.map((b, i) => (
@@ -108,8 +108,8 @@ const SecuritySection: React.FC = () => {
                 </feMerge>
               </filter>
               {/* Paths for packets to follow */}
-              <path id="path-photo-azure" d="M 100 60 C 140 60 160 60 200 60" />
-              <path id="path-azure-db" d="M 280 60 C 310 60 330 100 340 140" />
+              <path id="path-photo-ai" d="M 100 60 C 140 60 160 60 200 60" />
+              <path id="path-ai-db" d="M 280 60 C 310 60 330 100 340 140" />
               <path id="path-photo-down" d="M 80 80 C 80 120 80 160 80 200" />
             </defs>
 
@@ -125,7 +125,7 @@ const SecuritySection: React.FC = () => {
               <text x="80" y="86" textAnchor="middle" fontSize="7" fill="rgba(255,255,255,0.3)">Upload / Capture</text>
             </motion.g>
 
-            {/* ── Azure Node ── */}
+            {/* ── AI Node ── */}
             <motion.g
               initial={{ opacity: 0, scale: 0.8 }}
               animate={inView ? { opacity: 1, scale: 1 } : {}}
@@ -142,7 +142,7 @@ const SecuritySection: React.FC = () => {
                 transition={{ duration: 3, repeat: Infinity }}
               />
               <text x="230" y="50" textAnchor="middle" fontSize="20">☁️</text>
-              <text x="230" y="68" textAnchor="middle" fontSize="9" fill="hsl(195 100% 50%)" fontWeight="700">Azure Face API</text>
+              <text x="230" y="68" textAnchor="middle" fontSize="9" fill="hsl(195 100% 50%)" fontWeight="700">AI Face Engine</text>
               <text x="230" y="82" textAnchor="middle" fontSize="7" fill="rgba(255,255,255,0.3)">Embeddings stored here</text>
             </motion.g>
 
@@ -179,9 +179,9 @@ const SecuritySection: React.FC = () => {
             </motion.g>
 
             {/* ── Connection Lines ── */}
-            {/* Photo → Azure */}
+            {/* Photo → AI */}
             <line x1="130" y1="60" x2="170" y2="60" stroke="rgba(255,255,255,0.08)" strokeWidth="1.5" strokeDasharray="4 3" />
-            {/* Azure → DB */}
+            {/* AI → DB */}
             <path d="M 290 100 C 310 110 330 125 330 140" stroke="rgba(255,255,255,0.08)" strokeWidth="1.5" strokeDasharray="4 3" fill="none" />
             {/* Photo → Records */}
             <line x1="75" y1="100" x2="75" y2="170" stroke="rgba(255,255,255,0.08)" strokeWidth="1.5" strokeDasharray="4 3" />
@@ -189,33 +189,33 @@ const SecuritySection: React.FC = () => {
             <line x1="270" y1="200" x2="130" y2="200" stroke="rgba(255,255,255,0.08)" strokeWidth="1.5" strokeDasharray="4 3" />
 
             {/* ── Animated flowing packets ── */}
-            {/* Photo → Azure packets */}
+            {/* Photo → AI packets */}
             {[0, 1.2, 2.4].map((delay, i) => (
               <React.Fragment key={`pa-${i}`}>
                 <circle r="3" fill="hsl(195 100% 50%)">
                   <animateMotion dur="2s" repeatCount="indefinite" begin={`${delay}s`}>
-                    <mpath href="#path-photo-azure" />
+                    <mpath href="#path-photo-ai" />
                   </animateMotion>
                 </circle>
                 <circle r="1.2" fill="white" opacity="0.8">
                   <animateMotion dur="2s" repeatCount="indefinite" begin={`${delay}s`}>
-                    <mpath href="#path-photo-azure" />
+                    <mpath href="#path-photo-ai" />
                   </animateMotion>
                 </circle>
               </React.Fragment>
             ))}
 
-            {/* Azure → DB packets */}
+            {/* AI → DB packets */}
             {[0.5, 1.8, 3.0].map((delay, i) => (
               <React.Fragment key={`ad-${i}`}>
                 <circle r="3" fill="hsl(18 100% 58%)">
                   <animateMotion dur="2.5s" repeatCount="indefinite" begin={`${delay}s`}>
-                    <mpath href="#path-azure-db" />
+                    <mpath href="#path-ai-db" />
                   </animateMotion>
                 </circle>
                 <circle r="1.2" fill="white" opacity="0.8">
                   <animateMotion dur="2.5s" repeatCount="indefinite" begin={`${delay}s`}>
-                    <mpath href="#path-azure-db" />
+                    <mpath href="#path-ai-db" />
                   </animateMotion>
                 </circle>
               </React.Fragment>
@@ -238,7 +238,7 @@ const SecuritySection: React.FC = () => {
             ))}
 
             {/* Label on the link */}
-            <text x="230" y="122" textAnchor="middle" fontSize="8" fill="rgba(255,255,255,0.2)" fontStyle="italic">azure_person_id</text>
+            <text x="230" y="122" textAnchor="middle" fontSize="8" fill="rgba(255,255,255,0.2)" fontStyle="italic">biometric_ref_id</text>
           </svg>
         </motion.div>
       </div>

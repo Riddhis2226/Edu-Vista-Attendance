@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 const techs = [
   '⚛️ React + TypeScript',
   '🟠 Supabase',
-  '🔷 Azure Face API',
+  '🧠 AI Face Recognition',
   '📊 Google Sheets API',
   '🎨 Tailwind CSS',
   '🧩 shadcn/ui',
