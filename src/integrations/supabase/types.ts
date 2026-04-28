@@ -151,6 +151,7 @@ export type Database = {
           face_image_url: string | null
           full_name: string
           id: string
+          luxand_person_uuid: string | null
           program: string | null
           school_institute: string | null
           section: string | null
@@ -167,6 +168,7 @@ export type Database = {
           face_image_url?: string | null
           full_name: string
           id?: string
+          luxand_person_uuid?: string | null
           program?: string | null
           school_institute?: string | null
           section?: string | null
@@ -183,6 +185,7 @@ export type Database = {
           face_image_url?: string | null
           full_name?: string
           id?: string
+          luxand_person_uuid?: string | null
           program?: string | null
           school_institute?: string | null
           section?: string | null
