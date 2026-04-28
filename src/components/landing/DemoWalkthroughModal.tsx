@@ -13,14 +13,14 @@ const steps = [
   },
   {
     title: 'AI Face Detection',
-    description: 'Azure Face API scans the uploaded image, detecting and identifying every student face with 95%+ accuracy in under 2 seconds.',
+    description: 'Our AI engine scans the uploaded image, detecting and identifying every student face with 95%+ accuracy in under 2 seconds.',
     icon: ScanFace,
     color: 'secondary',
     visual: 'detect',
   },
   {
     title: 'Match & Verify',
-    description: 'Detected faces are matched against enrolled students using azure_person_id. Each match returns a confidence score for verification.',
+    description: 'Detected faces are matched against enrolled students using a secure biometric reference. Each match returns a confidence score for verification.',
     icon: Users,
     color: 'success',
     visual: 'match',

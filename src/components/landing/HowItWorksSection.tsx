@@ -5,7 +5,7 @@ import { Camera, Upload, Cpu, CheckCircle2, FileSpreadsheet, Cloud, ScanFace, Da
 const photoSteps = [
   { icon: Camera, label: 'Capture class photo' },
   { icon: Upload, label: 'Upload to EduVista' },
-  { icon: Cpu, label: 'Azure detects faces' },
+  { icon: Cpu, label: 'AI detects faces' },
   { icon: CheckCircle2, label: 'Match to enrolled students' },
   { icon: FileSpreadsheet, label: 'Export attendance' },
 ];
@@ -64,7 +64,7 @@ const PhotoFlowIllustration: React.FC = () => {
 
   const nodes = [
     { icon: Camera, label: 'Photo', color: 'primary' },
-    { icon: Cloud, label: 'Azure AI', color: 'secondary' },
+    { icon: Cloud, label: 'AI Engine', color: 'secondary' },
     { icon: ScanFace, label: 'Detect', color: 'secondary' },
     { icon: CheckCircle2, label: 'Match', color: 'success' },
   ];

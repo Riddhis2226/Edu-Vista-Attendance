@@ -28,7 +28,7 @@ const LandingFooter: React.FC = () => (
         </div>
 
         <div className="text-sm text-white/30 sm:text-right">
-          Built with React, Supabase & Azure
+          Built with React & Supabase
         </div>
       </div>
 
