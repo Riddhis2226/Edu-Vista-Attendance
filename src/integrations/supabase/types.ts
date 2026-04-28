@@ -142,7 +142,6 @@ export type Database = {
       }
       students: {
         Row: {
-          azure_person_id: string | null
           batch: string | null
           branch: string | null
           created_at: string
@@ -159,7 +158,6 @@ export type Database = {
           year: number | null
         }
         Insert: {
-          azure_person_id?: string | null
           batch?: string | null
           branch?: string | null
           created_at?: string
@@ -176,7 +174,6 @@ export type Database = {
           year?: number | null
         }
         Update: {
-          azure_person_id?: string | null
           batch?: string | null
           branch?: string | null
           created_at?: string
