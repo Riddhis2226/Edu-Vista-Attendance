@@ -137,7 +137,7 @@ const HeroSection: React.FC = () => {
             }}
           >
             <span className="w-2 h-2 rounded-full bg-success pulse-badge" />
-            <span className="text-success/90">✦ AI Face Recognition · IoT Ready · Real-Time</span>
+            <span className="text-success/90">✦ Powered by Luxand Cloud AI · 99.5% Accuracy · Real-Time</span>
           </motion.div>
 
           <motion.h1
@@ -172,7 +172,7 @@ const HeroSection: React.FC = () => {
             transition={{ delay: 0.6, duration: 0.5 }}
             className="text-base sm:text-lg text-muted-foreground max-w-xl leading-relaxed"
           >
-            EduVista uses AI to recognize student faces from classroom photos and processes IoT RFID data — generating attendance records in seconds, exportable as CSV or Google Sheet.
+            EduVista pairs <span className="text-foreground font-semibold">Luxand Cloud's enterprise face recognition</span> with IoT RFID processing — turning a single classroom photo into a verified attendance sheet in under 2 seconds.
           </motion.p>
 
           <motion.div
@@ -202,7 +202,7 @@ const HeroSection: React.FC = () => {
             transition={{ delay: 1, duration: 0.5 }}
             className="flex flex-wrap gap-3"
           >
-            {['🔒 Enterprise Secured', '⚡ 2-Second Recognition', '📊 Dual Export'].map((badge) => (
+            {['🔒 TLS 1.3 Encrypted', '⚡ < 2s Recognition', '🧠 Luxand AI Engine', '📊 CSV + Sheets Export'].map((badge) => (
               <span key={badge} className="px-3 py-1 text-xs font-medium text-white/60 bg-white/[0.04] rounded-full border border-white/[0.08]">
                 {badge}
               </span>

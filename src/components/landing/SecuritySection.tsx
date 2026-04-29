@@ -3,10 +3,10 @@ import { motion, useInView } from 'framer-motion';
 import { Check } from 'lucide-react';
 
 const bullets = [
-  'Face embeddings handled by an isolated recognition service — never in your database',
-  'Student metadata isolated with Row-Level Security',
-  'Only a non-reversible reference ID links a student to their biometric template',
-  'All API calls encrypted in transit with TLS 1.2+',
+  'Face embeddings stored inside Luxand Cloud — never inside your database',
+  'Student metadata isolated with Postgres Row-Level Security',
+  'Only a non-reversible UUID links a student to their biometric template',
+  'All API calls encrypted in transit with TLS 1.3 and signed tokens',
 ];
 
 /* Animated data packet that travels along a path */
@@ -142,7 +142,7 @@ const SecuritySection: React.FC = () => {
                 transition={{ duration: 3, repeat: Infinity }}
               />
               <text x="230" y="50" textAnchor="middle" fontSize="20">☁️</text>
-              <text x="230" y="68" textAnchor="middle" fontSize="9" fill="hsl(195 100% 50%)" fontWeight="700">AI Face Engine</text>
+              <text x="230" y="68" textAnchor="middle" fontSize="9" fill="hsl(195 100% 50%)" fontWeight="700">Luxand Cloud AI</text>
               <text x="230" y="82" textAnchor="middle" fontSize="7" fill="rgba(255,255,255,0.3)">Embeddings stored here</text>
             </motion.g>
 

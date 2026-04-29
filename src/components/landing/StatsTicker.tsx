@@ -3,10 +3,10 @@ import { motion, useInView } from 'framer-motion';
 import CountUp from '@/components/CountUp';
 
 const stats = [
-  { value: 95, suffix: '%+', label: 'Face Recognition Accuracy' },
-  { value: 2, prefix: '< ', suffix: ' sec', label: 'RFID Response Time' },
-  { value: 2, suffix: '', label: 'Methods: Photo + Dataset Upload' },
-  { value: 100, suffix: '%', label: 'Cloud-Backed & Secure' },
+  { value: 99.5, suffix: '%', label: 'Face Match Accuracy (Luxand AI)' },
+  { value: 2, prefix: '< ', suffix: ' sec', label: 'Avg. Recognition Latency' },
+  { value: 50, prefix: '', suffix: '+ faces', label: 'Detected Per Photo' },
+  { value: 256, suffix: '-bit', label: 'AES Encryption In Transit' },
 ];
 
 const StatsTicker: React.FC = () => {

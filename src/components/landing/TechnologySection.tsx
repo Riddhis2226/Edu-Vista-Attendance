@@ -2,14 +2,14 @@ import React from 'react';
 import { motion } from 'framer-motion';
 
 const techs = [
+  '🧠 Luxand Cloud AI',
   '⚛️ React + TypeScript',
   '🟠 Supabase',
-  '🧠 AI Face Recognition',
+  '🔐 Row-Level Security',
   '📊 Google Sheets API',
   '🎨 Tailwind CSS',
   '🧩 shadcn/ui',
   '📡 ESP32 + RC522 RFID',
-  '🔐 Supabase Auth',
   '⚡ Edge Functions',
   '🎞️ Framer Motion',
 ];
@@ -17,7 +17,8 @@ const techs = [
 const TechnologySection: React.FC = () => (
   <section id="technology" className="py-20 sm:py-28 relative overflow-hidden">
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center mb-10">
-      <h2 className="text-3xl sm:text-4xl font-extrabold text-foreground mb-3">Built With</h2>
+      <h2 className="text-3xl sm:text-4xl font-extrabold text-foreground mb-3">Production-Grade Stack</h2>
+      <p className="text-muted-foreground text-sm max-w-md mx-auto">Battle-tested tools that thousands of teams trust in production.</p>
     </div>
 
     <div className="relative group">

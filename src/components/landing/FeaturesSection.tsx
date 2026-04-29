@@ -3,12 +3,12 @@ import { motion, useInView } from 'framer-motion';
 import { Bot, FolderUp, Shield, BarChart3, Download, Lock } from 'lucide-react';
 
 const features = [
-  { icon: Bot, color: 'text-primary', bg: 'bg-primary/10', title: 'AI Face Recognition', desc: 'Detects and identifies all student faces from uploaded classroom photos. Any image format accepted.' },
-  { icon: FolderUp, color: 'text-secondary', bg: 'bg-secondary/10', title: 'IoT Dataset Upload', desc: 'Upload RFID-generated CSV or Google Sheet from your hardware. Column mapping and validation built in.' },
-  { icon: Shield, color: 'text-success', bg: 'bg-success/10', title: 'Split Security Architecture', desc: 'Student metadata in your database. Biometric embeddings handled by an isolated recognition service — never stored alongside personal data.' },
-  { icon: BarChart3, color: 'text-secondary', bg: 'bg-secondary/10', title: 'Real-Time Analytics', desc: 'Live attendance trends, department-wise charts, heatmap calendars, and instant low-attendance alerts.' },
-  { icon: Download, color: 'text-primary', bg: 'bg-primary/10', title: 'Dual Export Always', desc: 'Every session instantly available as CSV download and Google Sheet push with one click.' },
-  { icon: Lock, color: 'text-success', bg: 'bg-success/10', title: 'Role-Based Access', desc: 'Admin controls the institution. Faculty manages their sessions. Fully isolated with Row-Level Security.' },
+  { icon: Bot, color: 'text-primary', bg: 'bg-primary/10', title: 'Luxand AI Face Engine', desc: 'Industry-leading 99.5% accuracy. Detects up to 50+ faces in a single classroom photo and matches them against enrolled students in under 2 seconds.' },
+  { icon: FolderUp, color: 'text-secondary', bg: 'bg-secondary/10', title: 'IoT RFID Dataset Upload', desc: 'Upload RFID-generated CSV or Google Sheets from ESP32 hardware. Smart column mapping and validation built in.' },
+  { icon: Shield, color: 'text-success', bg: 'bg-success/10', title: 'Zero-Trust Biometrics', desc: 'Face embeddings live inside Luxand Cloud — never your database. Only a one-way reference ID links a student to their template. Photos are never permanently stored.' },
+  { icon: BarChart3, color: 'text-secondary', bg: 'bg-secondary/10', title: 'Real-Time Analytics', desc: 'Live attendance trends, department-wise charts, heatmap calendars, and instant low-attendance alerts via Supabase Realtime.' },
+  { icon: Download, color: 'text-primary', bg: 'bg-primary/10', title: 'Dual Export Always', desc: 'Every session instantly available as CSV download and Google Sheet push with one click. Audit-ready.' },
+  { icon: Lock, color: 'text-success', bg: 'bg-success/10', title: 'Role-Based Access', desc: 'Admin controls the institution. Faculty manages their sessions. Fully isolated with Postgres Row-Level Security.' },
 ];
 
 const FeaturesSection: React.FC = () => {
