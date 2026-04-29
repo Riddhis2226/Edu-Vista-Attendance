@@ -3,10 +3,10 @@ import { motion, useInView } from 'framer-motion';
 import { Check } from 'lucide-react';
 
 const bullets = [
-  'Face embeddings handled by an isolated recognition service — never in your database',
-  'Student metadata isolated with Row-Level Security',
-  'Only a non-reversible reference ID links a student to their biometric template',
-  'All API calls encrypted in transit with TLS 1.2+',
+  'Face embeddings stored inside Luxand Cloud — never inside your database',
+  'Student metadata isolated with Postgres Row-Level Security',
+  'Only a non-reversible UUID links a student to their biometric template',
+  'All API calls encrypted in transit with TLS 1.3 and signed tokens',
 ];
 
 /* Animated data packet that travels along a path */
