@@ -8,6 +8,7 @@ import DemoSection from '@/components/landing/DemoSection';
 import FeaturesSection from '@/components/landing/FeaturesSection';
 import HowItWorksSection from '@/components/landing/HowItWorksSection';
 import SecuritySection from '@/components/landing/SecuritySection';
+import TrustSection from '@/components/landing/TrustSection';
 import TechnologySection from '@/components/landing/TechnologySection';
 import LandingFooter from '@/components/landing/LandingFooter';
 
