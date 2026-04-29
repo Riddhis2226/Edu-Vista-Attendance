@@ -41,6 +41,7 @@ const LandingPage: React.FC = () => {
         <FeaturesSection />
         <HowItWorksSection />
         <SecuritySection />
+        <TrustSection />
         <TechnologySection />
         <LandingFooter />
       </div>
