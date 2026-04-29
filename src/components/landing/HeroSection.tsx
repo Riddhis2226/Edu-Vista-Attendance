@@ -202,7 +202,7 @@ const HeroSection: React.FC = () => {
             transition={{ delay: 1, duration: 0.5 }}
             className="flex flex-wrap gap-3"
           >
-            {['🔒 Enterprise Secured', '⚡ 2-Second Recognition', '📊 Dual Export'].map((badge) => (
+            {['🔒 TLS 1.3 Encrypted', '⚡ < 2s Recognition', '🧠 Luxand AI Engine', '📊 CSV + Sheets Export'].map((badge) => (
               <span key={badge} className="px-3 py-1 text-xs font-medium text-white/60 bg-white/[0.04] rounded-full border border-white/[0.08]">
                 {badge}
               </span>
