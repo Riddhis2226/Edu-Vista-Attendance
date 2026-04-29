@@ -7,6 +7,7 @@ import StatsTicker from '@/components/landing/StatsTicker';
 import DemoSection from '@/components/landing/DemoSection';
 import FeaturesSection from '@/components/landing/FeaturesSection';
 import HowItWorksSection from '@/components/landing/HowItWorksSection';
+import LiveDemoSection from '@/components/landing/LiveDemoSection';
 import SecuritySection from '@/components/landing/SecuritySection';
 import TrustSection from '@/components/landing/TrustSection';
 import TechnologySection from '@/components/landing/TechnologySection';
@@ -39,6 +40,7 @@ const LandingPage: React.FC = () => {
         <StatsTicker />
         <DemoSection />
         <FeaturesSection />
+        <LiveDemoSection />
         <HowItWorksSection />
         <SecuritySection />
         <TrustSection />
