@@ -137,7 +137,7 @@ const HeroSection: React.FC = () => {
             }}
           >
             <span className="w-2 h-2 rounded-full bg-success pulse-badge" />
-            <span className="text-success/90">✦ AI Face Recognition · IoT Ready · Real-Time</span>
+            <span className="text-success/90">✦ Powered by Luxand Cloud AI · 99.5% Accuracy · Real-Time</span>
           </motion.div>
 
           <motion.h1
