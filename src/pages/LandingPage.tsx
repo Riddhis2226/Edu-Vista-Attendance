@@ -40,6 +40,7 @@ const LandingPage: React.FC = () => {
         <StatsTicker />
         <DemoSection />
         <FeaturesSection />
+        <LiveDemoSection />
         <HowItWorksSection />
         <SecuritySection />
         <TrustSection />
