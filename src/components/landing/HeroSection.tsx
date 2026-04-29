@@ -172,7 +172,7 @@ const HeroSection: React.FC = () => {
             transition={{ delay: 0.6, duration: 0.5 }}
             className="text-base sm:text-lg text-muted-foreground max-w-xl leading-relaxed"
           >
-            EduVista uses AI to recognize student faces from classroom photos and processes IoT RFID data — generating attendance records in seconds, exportable as CSV or Google Sheet.
+            EduVista pairs <span className="text-foreground font-semibold">Luxand Cloud's enterprise face recognition</span> with IoT RFID processing — turning a single classroom photo into a verified attendance sheet in under 2 seconds.
           </motion.p>
 
           <motion.div
