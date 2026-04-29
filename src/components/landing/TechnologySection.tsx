@@ -2,14 +2,14 @@ import React from 'react';
 import { motion } from 'framer-motion';
 
 const techs = [
+  '🧠 Luxand Cloud AI',
   '⚛️ React + TypeScript',
   '🟠 Supabase',
-  '🧠 AI Face Recognition',
+  '🔐 Row-Level Security',
   '📊 Google Sheets API',
   '🎨 Tailwind CSS',
   '🧩 shadcn/ui',
   '📡 ESP32 + RC522 RFID',
-  '🔐 Supabase Auth',
   '⚡ Edge Functions',
   '🎞️ Framer Motion',
 ];
