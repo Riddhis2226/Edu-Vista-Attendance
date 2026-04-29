@@ -142,7 +142,7 @@ const SecuritySection: React.FC = () => {
                 transition={{ duration: 3, repeat: Infinity }}
               />
               <text x="230" y="50" textAnchor="middle" fontSize="20">☁️</text>
-              <text x="230" y="68" textAnchor="middle" fontSize="9" fill="hsl(195 100% 50%)" fontWeight="700">AI Face Engine</text>
+              <text x="230" y="68" textAnchor="middle" fontSize="9" fill="hsl(195 100% 50%)" fontWeight="700">Luxand Cloud AI</text>
               <text x="230" y="82" textAnchor="middle" fontSize="7" fill="rgba(255,255,255,0.3)">Embeddings stored here</text>
             </motion.g>
 
