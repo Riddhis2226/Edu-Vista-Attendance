@@ -17,7 +17,10 @@ Deno.serve(async (req) => {
 
   try {
     const LUXAND_TOKEN = Deno.env.get("LUXAND_API_TOKEN");
-    if (!LUXAND_TOKEN) return json(500, { error: "LUXAND_API_TOKEN not configured" });
+    if (!LUXAND_TOKEN) {
+      console.error("luxand-enroll: LUXAND_API_TOKEN not configured");
+      return json(500, { error: "Service unavailable" });
+    }
 
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) return json(401, { error: "Unauthorized" });
@@ -31,6 +34,24 @@ Deno.serve(async (req) => {
     const token = authHeader.replace("Bearer ", "");
     const { data: claimsData, error: claimsErr } = await supabase.auth.getClaims(token);
     if (claimsErr || !claimsData?.claims) return json(401, { error: "Unauthorized" });
+
+    const userId = claimsData.claims.sub as string;
+
+    // Admin-only: enrollment writes biometric data and must not be available to faculty.
+    const { data: roleRow, error: roleErr } = await supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", userId)
+      .maybeSingle();
+    if (roleErr || roleRow?.role !== "admin") {
+      return json(403, { error: "Forbidden" });
+    }
+
+    // Use a service-role client for storage uploads (bucket is now private and admin-only)
+    const adminClient = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+    );
 
     const body = await req.json().catch(() => null);
     if (!body || typeof body.student_id !== "string" || typeof body.image_base64 !== "string") {
@@ -49,26 +70,40 @@ Deno.serve(async (req) => {
     const b64 = body.image_base64.includes(",")
       ? body.image_base64.split(",")[1]
       : body.image_base64;
-    const bytes = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
+    let bytes: Uint8Array;
+    try {
+      bytes = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
+    } catch {
+      return json(400, { error: "Invalid image data" });
+    }
     const ext = "jpg";
     const path = `${student.id}/${Date.now()}.${ext}`;
 
-    // Upload to face-images bucket (public)
-    const { error: upErr } = await supabase.storage
+    // Upload to face-images bucket (private)
+    const { error: upErr } = await adminClient.storage
       .from("face-images")
       .upload(path, bytes, { contentType: "image/jpeg", upsert: true });
-    if (upErr) return json(500, { error: `Storage upload failed: ${upErr.message}` });
+    if (upErr) {
+      console.error("luxand-enroll storage upload failed:", upErr);
+      return json(500, { error: "Image upload failed" });
+    }
 
-    const { data: pub } = supabase.storage.from("face-images").getPublicUrl(path);
-    const publicUrl = pub.publicUrl;
+    // Generate a short-lived signed URL so Luxand can fetch the private image (1 hour)
+    const { data: signed, error: signErr } = await adminClient.storage
+      .from("face-images")
+      .createSignedUrl(path, 60 * 60);
+    if (signErr || !signed?.signedUrl) {
+      console.error("luxand-enroll signed url failed:", signErr);
+      return json(500, { error: "Image processing failed" });
+    }
+    const imageUrlForLuxand = signed.signedUrl;
 
     // Call Luxand
     let luxandRes: Response;
     let luxandJson: any;
     if (student.luxand_person_uuid) {
-      // Add another face to existing person
       const fd = new FormData();
-      fd.append("photos", publicUrl);
+      fd.append("photos", imageUrlForLuxand);
       fd.append("store", "1");
       luxandRes = await fetch(
         `https://api.luxand.cloud/v2/person/${student.luxand_person_uuid}`,
@@ -78,7 +113,7 @@ Deno.serve(async (req) => {
       const fd = new FormData();
       fd.append("name", student.full_name);
       fd.append("store", "1");
-      fd.append("photos", publicUrl);
+      fd.append("photos", imageUrlForLuxand);
       luxandRes = await fetch("https://api.luxand.cloud/v2/person", {
         method: "POST",
         headers: { token: LUXAND_TOKEN },
@@ -88,28 +123,33 @@ Deno.serve(async (req) => {
 
     luxandJson = await luxandRes.json().catch(() => ({}));
     if (!luxandRes.ok || luxandJson?.status === "failure") {
-      const msg = luxandJson?.message || `Luxand API error (${luxandRes.status})`;
-      return json(400, { error: msg, luxand: luxandJson });
+      console.error("luxand-enroll Luxand API error:", luxandRes.status, luxandJson);
+      return json(400, { error: "Face enrollment failed. Please try again." });
     }
 
     const personUuid = student.luxand_person_uuid || luxandJson?.uuid || luxandJson?.id;
-    if (!personUuid) return json(500, { error: "No person UUID returned by Luxand", luxand: luxandJson });
+    if (!personUuid) {
+      console.error("luxand-enroll: no person UUID returned", luxandJson);
+      return json(500, { error: "Face enrollment failed. Please try again." });
+    }
 
-    // Update student
+    // Update student — store the storage path (not a public URL) since the bucket is private
     const { error: updErr } = await supabase
       .from("students")
       .update({
         luxand_person_uuid: personUuid,
         face_enrolled: true,
-        face_image_url: publicUrl,
+        face_image_url: path,
       })
       .eq("id", student.id);
-    if (updErr) return json(500, { error: `DB update failed: ${updErr.message}` });
+    if (updErr) {
+      console.error("luxand-enroll DB update failed:", updErr);
+      return json(500, { error: "Database update failed" });
+    }
 
-    return json(200, { success: true, person_uuid: personUuid, photo_url: publicUrl });
+    return json(200, { success: true, person_uuid: personUuid });
   } catch (e) {
-    const msg = e instanceof Error ? e.message : "Unknown error";
-    console.error("luxand-enroll error:", msg);
-    return json(500, { error: msg });
+    console.error("luxand-enroll error:", e);
+    return json(500, { error: "An internal error occurred" });
   }
 });

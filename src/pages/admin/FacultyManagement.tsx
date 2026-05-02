@@ -34,16 +34,21 @@ const FacultyManagement = () => {
 
   const handleAdd = async () => {
     setSaving(true);
-    const { data, error } = await supabase.auth.signUp({
-      email: form.email, password: form.password,
-      options: { data: { name: form.name, role: 'faculty' } },
-    });
-    if (error) toast.error(error.message);
-    else toast.success('Faculty added. They will receive a confirmation email.');
-    setSaving(false);
-    setAddOpen(false);
-    setForm({ name: '', email: '', password: '' });
-    setTimeout(fetchFaculty, 2000);
+    try {
+      const { data, error } = await supabase.functions.invoke('admin-create-faculty', {
+        body: { name: form.name, email: form.email, password: form.password },
+      });
+      if (error) throw error;
+      if (!data?.success) throw new Error(data?.error || 'Failed to create faculty');
+      toast.success('Faculty added.');
+      setAddOpen(false);
+      setForm({ name: '', email: '', password: '' });
+      setTimeout(fetchFaculty, 1000);
+    } catch (e: any) {
+      toast.error(e?.message || 'Failed to create faculty');
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleUpdate = async () => {
