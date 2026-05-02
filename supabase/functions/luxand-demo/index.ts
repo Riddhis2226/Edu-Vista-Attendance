@@ -37,7 +37,10 @@ Deno.serve(async (req) => {
     }
 
     const LUXAND_TOKEN = Deno.env.get("LUXAND_API_TOKEN");
-    if (!LUXAND_TOKEN) return json(500, { error: "LUXAND_API_TOKEN not configured" });
+    if (!LUXAND_TOKEN) {
+      console.error("luxand-demo: LUXAND_API_TOKEN not configured");
+      return json(500, { error: "Service unavailable" });
+    }
 
     const body = await req.json().catch(() => null);
     const imageUrl: string | undefined = body?.image_url;
@@ -59,7 +62,8 @@ Deno.serve(async (req) => {
     const latency_ms = Date.now() - t0;
 
     if (!res.ok) {
-      return json(res.status, { error: "Luxand request failed", details: data, latency_ms });
+      console.error("luxand-demo: Luxand request failed", res.status, data);
+      return json(502, { error: "Demo temporarily unavailable. Please try again.", latency_ms });
     }
 
     const faces = Array.isArray(data) ? data : (data?.faces || []);
@@ -87,8 +91,7 @@ Deno.serve(async (req) => {
       faces: sanitized,
     });
   } catch (e) {
-    const msg = e instanceof Error ? e.message : "Unknown error";
-    console.error("luxand-demo error:", msg);
-    return json(500, { error: msg });
+    console.error("luxand-demo error:", e);
+    return json(500, { error: "An internal error occurred" });
   }
 });

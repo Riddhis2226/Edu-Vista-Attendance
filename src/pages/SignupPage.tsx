@@ -2,63 +2,18 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Loader2, CheckCircle2, ShieldCheck, BookOpen } from 'lucide-react';
+import { Loader2, CheckCircle2, BookOpen } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import AuthLayout from '@/layouts/AuthLayout';
 import FloatingInput from '@/components/FloatingInput';
 import eduvistaLogo from '@/assets/eduvista-logo.png';
 
-/* ── Role card ── */
-const RoleCard: React.FC<{
-  role: 'admin' | 'faculty';
-  selected: boolean;
-  onSelect: () => void;
-}> = ({ role, selected, onSelect }) => {
-  const isAdmin = role === 'admin';
-  return (
-    <motion.button
-      type="button"
-      onClick={onSelect}
-      whileHover={{ scale: 1.02 }}
-      whileTap={{ scale: 0.98 }}
-      className={`
-        flex-1 p-4 rounded-xl border text-left transition-all duration-300
-        ${selected
-          ? isAdmin
-            ? 'border-secondary bg-secondary/10 shadow-[0_0_25px_rgba(0,194,255,0.15)]'
-            : 'border-primary bg-primary/10 shadow-[0_0_25px_rgba(255,107,43,0.15)]'
-          : 'border-white/10 bg-white/[0.03] hover:border-white/20'
-        }
-      `}
-    >
-      <motion.div
-        animate={selected ? { scale: [1, 1.15, 1] } : {}}
-        transition={{ duration: 0.4 }}
-        className="mb-2"
-      >
-        {isAdmin ? (
-          <ShieldCheck className={`w-6 h-6 ${selected ? 'text-secondary' : 'text-white/40'}`} />
-        ) : (
-          <BookOpen className={`w-6 h-6 ${selected ? 'text-primary' : 'text-white/40'}`} />
-        )}
-      </motion.div>
-      <div className={`text-sm font-semibold ${selected ? 'text-foreground' : 'text-white/60'}`}>
-        {isAdmin ? 'Admin' : 'Faculty'}
-      </div>
-      <div className="text-[11px] text-muted-foreground mt-0.5">
-        {isAdmin ? 'Manage students, analytics & system' : 'Upload attendance & manage sessions'}
-      </div>
-    </motion.button>
-  );
-};
-
 const SignupPage: React.FC = () => {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPw, setConfirmPw] = useState('');
-  const [selectedRole, setSelectedRole] = useState<'admin' | 'faculty'>('faculty');
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [fieldError, setFieldError] = useState(false);
@@ -90,7 +45,8 @@ const SignupPage: React.FC = () => {
     }
     setFieldError(false);
     setLoading(true);
-    const { error } = await signUp(email, password, name, selectedRole);
+    // Role is always set to 'faculty' by the database trigger — never trust client-supplied role.
+    const { error } = await signUp(email, password, name, 'faculty');
     setLoading(false);
     if (error) {
       setFieldError(true);
@@ -119,8 +75,8 @@ const SignupPage: React.FC = () => {
             animate={{ scale: 1 }}
             transition={{ type: 'spring', stiffness: 200 }}
           />
-          <h1 className="text-2xl font-bold text-foreground">Create Your Account</h1>
-          <p className="text-sm text-muted-foreground">Set up EduVista for your institution</p>
+          <h1 className="text-2xl font-bold text-foreground">Create Faculty Account</h1>
+          <p className="text-sm text-muted-foreground">Sign up to upload sessions and manage attendance</p>
         </div>
 
         <AnimatePresence mode="wait">
@@ -140,7 +96,7 @@ const SignupPage: React.FC = () => {
               </motion.div>
               <p className="text-foreground font-semibold text-lg">Account Created!</p>
               <p className="text-sm text-muted-foreground text-center">
-                Redirecting to your {selectedRole === 'admin' ? 'Admin' : 'Faculty'} dashboard…
+                Redirecting to your Faculty dashboard…
               </p>
               <div className="flex items-center gap-2 mt-2">
                 <Loader2 className="w-4 h-4 animate-spin text-primary" />
@@ -160,13 +116,13 @@ const SignupPage: React.FC = () => {
               <FloatingInput id="password" label="Password" type="password" value={password} onChange={setPassword} error={fieldError} showToggle />
               <FloatingInput id="confirm-pw" label="Confirm Password" type="password" value={confirmPw} onChange={setConfirmPw} error={fieldError} showToggle />
 
-              {/* Role selector */}
-              <div className="space-y-2 pt-1">
-                <label className="text-xs text-muted-foreground font-medium">Select Your Role</label>
-                <div className="flex gap-3">
-                  <RoleCard role="admin" selected={selectedRole === 'admin'} onSelect={() => setSelectedRole('admin')} />
-                  <RoleCard role="faculty" selected={selectedRole === 'faculty'} onSelect={() => setSelectedRole('faculty')} />
-                </div>
+              {/* Faculty-only notice */}
+              <div className="flex items-start gap-2 rounded-lg border border-white/10 bg-white/[0.03] p-3">
+                <BookOpen className="w-4 h-4 mt-0.5 text-primary shrink-0" />
+                <p className="text-[11px] text-muted-foreground leading-relaxed">
+                  Public signups are created as <span className="text-foreground font-medium">Faculty</span>.
+                  Admin access can only be granted by an existing administrator.
+                </p>
               </div>
 
               <motion.button

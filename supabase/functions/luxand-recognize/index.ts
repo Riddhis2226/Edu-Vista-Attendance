@@ -73,7 +73,7 @@ Deno.serve(async (req) => {
 
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        console.warn(`Luxand search failed for image ${i}:`, data);
+        console.warn(`Luxand search failed for image ${i}:`, res.status, data);
         continue;
       }
 
@@ -110,8 +110,7 @@ Deno.serve(async (req) => {
       results,
     });
   } catch (e) {
-    const msg = e instanceof Error ? e.message : "Unknown error";
-    console.error("luxand-recognize error:", msg);
-    return json(500, { error: msg });
+    console.error("luxand-recognize error:", e);
+    return json(500, { error: "An internal error occurred" });
   }
 });
