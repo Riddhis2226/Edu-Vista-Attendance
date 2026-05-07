@@ -20,6 +20,8 @@ import FaceEnrollment from "./pages/admin/FaceEnrollment";
 import AttendanceLogs from "./pages/admin/AttendanceLogs";
 import FacultyManagement from "./pages/admin/FacultyManagement";
 import LectureTargets from "./pages/admin/LectureTargets";
+import AdminSettings from "./pages/admin/Settings";
+import AuditLog from "./pages/admin/AuditLog";
 import FacultyOverview from "./pages/faculty/FacultyOverview";
 import UploadPhoto from "./pages/faculty/UploadPhoto";
 import UploadDataset from "./pages/faculty/UploadDataset";
@@ -50,6 +52,8 @@ const App = () => (
               <Route path="attendance-logs" element={<AttendanceLogs />} />
               <Route path="faculty" element={<FacultyManagement />} />
               <Route path="lecture-targets" element={<LectureTargets />} />
+              <Route path="audit-log" element={<AuditLog />} />
+              <Route path="settings" element={<AdminSettings />} />
             </Route>
 
             {/* Faculty routes */}
