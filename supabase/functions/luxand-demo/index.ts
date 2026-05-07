@@ -49,11 +49,20 @@ Deno.serve(async (req) => {
     }
 
     const t0 = Date.now();
-    const fd = new FormData();
-    fd.append("photo", imageUrl);
 
-    // Use detection endpoint — returns ALL faces in the image, not just
-    // ones matched against an enrolled collection.
+    // Luxand's photo URL parser breaks on query strings (especially with `&`).
+    // Fetch the image ourselves and forward the raw bytes.
+    const imgRes = await fetch(imageUrl);
+    if (!imgRes.ok) {
+      return json(400, { error: `Could not fetch image (HTTP ${imgRes.status})` });
+    }
+    const contentType = imgRes.headers.get("content-type") || "image/jpeg";
+    const imgBuf = await imgRes.arrayBuffer();
+    const blob = new Blob([imgBuf], { type: contentType });
+
+    const fd = new FormData();
+    fd.append("photo", blob, "demo.jpg");
+
     const res = await fetch("https://api.luxand.cloud/photo/detect", {
       method: "POST",
       headers: { token: LUXAND_TOKEN },
