@@ -22,15 +22,32 @@ const UploadPhoto = () => {
   const [files, setFiles] = useState<File[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
   const [subject, setSubject] = useState('');
-  const [batch, setBatch] = useState('');
+  const [program, setProgram] = useState<string>('all');
+  const [batch, setBatch] = useState<string>('all');
+  const [semester, setSemester] = useState<string>('all');
+  const [section, setSection] = useState<string>('all');
+  const [programOptions, setProgramOptions] = useState<string[]>([]);
   const [batchOptions, setBatchOptions] = useState<string[]>([]);
+  const [semesterOptions, setSemesterOptions] = useState<string[]>([]);
+  const [sectionOptions, setSectionOptions] = useState<string[]>([]);
 
   useEffect(() => {
     (async () => {
-      const { data } = await supabase.from('students').select('batch');
-      const set = new Set<string>();
-      (data || []).forEach((s: any) => s.batch && set.add(s.batch));
-      setBatchOptions(Array.from(set).sort());
+      const { data } = await supabase.from('students').select('program, batch, semester, section');
+      const progs = new Set<string>();
+      const batches = new Set<string>();
+      const sems = new Set<string>();
+      const secs = new Set<string>();
+      (data || []).forEach((s: any) => {
+        if (s.program) progs.add(s.program);
+        if (s.batch) batches.add(s.batch);
+        if (s.semester) sems.add(s.semester);
+        if (s.section) secs.add(s.section);
+      });
+      setProgramOptions(Array.from(progs).sort());
+      setBatchOptions(Array.from(batches).sort());
+      setSemesterOptions(Array.from(sems).sort());
+      setSectionOptions(Array.from(secs).sort());
     })();
   }, []);
   const [phase, setPhase] = useState<'upload' | 'processing' | 'results'>('upload');
@@ -70,7 +87,7 @@ const UploadPhoto = () => {
   });
 
   const startRecognition = async () => {
-    if (files.length === 0 || !subject || !batch) return;
+    if (files.length === 0 || !subject) return;
     setPhase('processing');
     try {
       updateStep(0, 'active');
@@ -79,7 +96,13 @@ const UploadPhoto = () => {
 
       updateStep(1, 'active');
       const { data, error } = await supabase.functions.invoke('luxand-recognize', {
-        body: { batch, images },
+        body: {
+          batch: batch !== 'all' ? batch : undefined,
+          program: program !== 'all' ? program : undefined,
+          semester: semester !== 'all' ? semester : undefined,
+          section: section !== 'all' ? section : undefined,
+          images,
+        },
       });
       updateStep(1, 'done');
       if (error) throw error;
@@ -109,7 +132,8 @@ const UploadPhoto = () => {
     const absent = results.filter(r => r.status === 'absent').length;
 
     const { data: session, error: sessErr } = await supabase.from('attendance_sessions').insert({
-      subject, batch, faculty_id: user.id, faculty_name: userName, method: 'ai_photo' as const,
+      subject, batch: batch !== 'all' ? batch : (program !== 'all' ? program : 'All'),
+      faculty_id: user.id, faculty_name: userName, method: 'ai_photo' as const,
       total_present: present, total_absent: absent,
     }).select().single();
 
@@ -134,19 +158,48 @@ const UploadPhoto = () => {
 
       {phase === 'upload' && (
         <div className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-2xl">
-            <div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-w-4xl">
+            <div className="md:col-span-2 lg:col-span-3">
               <Label>Subject</Label>
               <Input value={subject} onChange={e => setSubject(e.target.value)} className="bg-muted/30 mt-1" placeholder="e.g. Data Structures" />
             </div>
             <div>
+              <Label>Program</Label>
+              <Select value={program} onValueChange={setProgram}>
+                <SelectTrigger className="bg-muted/30 mt-1"><SelectValue placeholder="All Programs" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Programs</SelectItem>
+                  {programOptions.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
               <Label>Batch</Label>
               <Select value={batch} onValueChange={setBatch}>
-                <SelectTrigger className="bg-muted/30 mt-1"><SelectValue placeholder="Select batch" /></SelectTrigger>
+                <SelectTrigger className="bg-muted/30 mt-1"><SelectValue placeholder="All Batches" /></SelectTrigger>
                 <SelectContent>
-                  {batchOptions.length === 0 ? (
-                    <SelectItem value="__none" disabled>No batches found</SelectItem>
-                  ) : batchOptions.map(b => <SelectItem key={b} value={b}>{b}</SelectItem>)}
+                  <SelectItem value="all">All Batches</SelectItem>
+                  {batchOptions.map(b => <SelectItem key={b} value={b}>{b}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Semester</Label>
+              <Select value={semester} onValueChange={setSemester}>
+                <SelectTrigger className="bg-muted/30 mt-1"><SelectValue placeholder="All Semesters" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Semesters</SelectItem>
+                  {semesterOptions.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Section</Label>
+              <Select value={section} onValueChange={setSection}>
+                <SelectTrigger className="bg-muted/30 mt-1"><SelectValue placeholder="All Sections" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Sections</SelectItem>
+                  {sectionOptions.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
@@ -172,7 +225,7 @@ const UploadPhoto = () => {
             </div>
           )}
 
-          <Button onClick={startRecognition} disabled={files.length === 0 || !subject || !batch} className="btn-shimmer" size="lg">
+          <Button onClick={startRecognition} disabled={files.length === 0 || !subject} className="btn-shimmer" size="lg">
             Start Recognition
           </Button>
         </div>

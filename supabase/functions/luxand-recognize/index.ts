@@ -34,18 +34,21 @@ Deno.serve(async (req) => {
     const body = await req.json().catch(() => null);
     if (
       !body ||
-      typeof body.batch !== "string" ||
       !Array.isArray(body.images) ||
       body.images.length === 0
     ) {
-      return json(400, { error: "batch and images[] are required" });
+      return json(400, { error: "images[] are required" });
     }
 
-    // Load enrolled students for this batch
-    const { data: students, error: stuErr } = await supabase
+    // Load enrolled students with optional filters
+    let query = supabase
       .from("students")
-      .select("id, full_name, enrollment_no, luxand_person_uuid, face_enrolled")
-      .eq("batch", body.batch);
+      .select("id, full_name, enrollment_no, luxand_person_uuid, face_enrolled");
+    if (typeof body.batch === "string" && body.batch) query = query.eq("batch", body.batch);
+    if (typeof body.program === "string" && body.program) query = query.eq("program", body.program);
+    if (typeof body.semester === "string" && body.semester) query = query.eq("semester", body.semester);
+    if (typeof body.section === "string" && body.section) query = query.eq("section", body.section);
+    const { data: students, error: stuErr } = await query;
     if (stuErr) return json(500, { error: `Student fetch failed: ${stuErr.message}` });
 
     const enrolledStudents = (students || []).filter((s) => s.luxand_person_uuid);
