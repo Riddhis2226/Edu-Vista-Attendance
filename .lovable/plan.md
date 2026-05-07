@@ -1,77 +1,102 @@
-## Goal
+# Luxand Admin Controls, Audit Log, Delete Flow & Status Indicators
 
-Replace the stubbed face features with real face recognition powered by **Luxand Cloud**:
-- Admin enrolls each student's face (one photo, upload or webcam)
-- Faculty uploads classroom photo(s) → system detects all faces, matches them to enrolled students, marks present/absent
+Four related upgrades to make Luxand integration manageable, observable, and reversible from inside the app.
 
-## What you need to provide
+## 1. Admin Settings page — manage `LUXAND_API_TOKEN` + connectivity test
 
-1. Sign up at https://dashboard.luxand.cloud/ (free tier = 500 calls/month)
-2. Copy your **API token** from the dashboard
-3. I'll prompt you to paste it as a secret called `LUXAND_API_TOKEN` — it stays server-side only
+**New route** `/admin/settings` (sidebar entry "Settings", `Settings` icon).
 
-## Database changes
+The Luxand API token is a server-side secret — it must never be sent to the browser. The page therefore does not display the current value; it only lets an admin **rotate** it and **test** connectivity.
 
-One migration on the `students` table:
-- Add `luxand_person_uuid TEXT` — stores Luxand's person ID returned at enrollment. Nullable. Used later to identify matches in classroom photos.
+UI:
+- "Luxand Cloud" card showing connection status pill (Connected / Not configured / Error) plus last-tested timestamp.
+- "Test connection" button → calls a new edge function `luxand-status` which performs a cheap auth-checked call to Luxand (`GET /v2/person?limit=1`) and returns `{ ok, message, person_count }`.
+- "Update API token" form (password input + confirm). Submitting calls a new edge function `luxand-set-token` which validates the token against Luxand first, then writes it to the project secret store. If validation fails, the existing token is preserved and the user sees the Luxand error message.
 
-Existing `face_enrolled` (bool) and `face_image_url` (text) columns are kept — `face_enrolled` flips to `true` after successful enrollment, `face_image_url` stores the photo we uploaded to the existing `face-images` storage bucket so admins can see who's enrolled.
+Both functions are admin-only (JWT + `has_role(uid,'admin')`).
 
-## Backend: two new edge functions
+Note for the user: rotating the secret from inside the app uses the Lovable Cloud secrets API server-side; if that proves unavailable in this environment we fall back to instructing the admin to update `LUXAND_API_TOKEN` in Cloud → Secrets, and the page still does the validation + status display.
 
-Both are JWT-verified (admin/faculty only), validate input with Zod, and use `LUXAND_API_TOKEN` from secrets.
+## 2. Audit log for face enrollment / removal
 
-### `luxand-enroll`
-- Input: `{ student_id, image_base64 }`
-- Uploads image to `face-images` bucket → gets a public URL
-- Calls `POST https://api.luxand.cloud/v2/person` with the student's name + photo URL
-- On success: updates `students` row with `luxand_person_uuid`, `face_enrolled = true`, `face_image_url`
-- Returns `{ success, person_uuid }`
-- Handles Luxand errors: "no face detected", "multiple faces", quota exceeded → returns clean 400 with message
+**New table** `face_audit_log`:
 
-### `luxand-recognize`
-- Input: `{ batch, image_base64_list[] }`
-- For each image: calls `POST https://api.luxand.cloud/photo/search/v2` (multi-face search against your collection)
-- Aggregates matched `person_uuid`s across all photos, dedupes
-- Loads all students for the batch, joins matches by `luxand_person_uuid`
-- Returns `{ results: [{ student_id, enrollment_no, student_name, status: 'present'|'absent', confidence }] }` — students not matched in any photo = absent
+```text
+id              uuid pk
+student_id      uuid
+enrollment_no   text
+student_name    text
+action          text  -- 'enroll' | 'remove' | 'enroll_failed' | 'remove_failed'
+luxand_person_uuid text null
+admin_user_id   uuid
+admin_name      text
+error_message   text null
+created_at      timestamptz default now()
+```
 
-## Frontend changes
+RLS: admin-only SELECT/INSERT. Inserts happen only from edge functions using the service role, so RLS just blocks any direct client access.
 
-### `src/pages/admin/FaceEnrollment.tsx`
-- Re-wire `handleEnroll`: convert preview to base64, call `supabase.functions.invoke('luxand-enroll', ...)`, show success/failure, refresh student list
-- Show specific error messages from Luxand (e.g. "No face detected — please retake")
+**Writers:** `luxand-enroll`, the new `luxand-delete-face`, and the student-delete flow all write one row per attempt (success or failure, with the Luxand error string captured).
 
-### `src/pages/faculty/UploadPhoto.tsx`
-- Re-wire `startRecognition`: convert all selected photos to base64, call `supabase.functions.invoke('luxand-recognize', ...)`
-- Drive the existing 5-step `StepProgress` from real phases (upload → API call → results)
-- Render the returned results in the existing results table (no UI rebuild needed)
-- `saveAttendance` already works — keep as-is
+**New route** `/admin/audit-log` — paginated table (date, admin, student + enrollment no, action, person_uuid, error). Filter by action / date range / search. Sidebar entry "Audit Log" (`History` icon).
 
-### Landing page text
-Update the small "AI Engine" / "Isolated Recognition Service" labels in `HeroSection`, `TechnologySection`, `SecuritySection`, `HowItWorksSection`, `DemoWalkthroughModal` to reference "Luxand Cloud face recognition" so the marketing copy matches reality.
+## 3. Luxand delete flow on student deletion + face removal
+
+**New edge function** `luxand-delete-face`:
+- Input `{ student_id }`, admin-only.
+- Reads the student's `luxand_person_uuid` and `face_image_url` (storage path).
+- Calls `DELETE https://api.luxand.cloud/v2/person/{uuid}`.
+- Removes the file from the `face-images` bucket.
+- Clears `luxand_person_uuid`, sets `face_enrolled=false`, `face_image_url=null`, `enrollment_status='not_enrolled'`, `enrollment_error=null` on the student row.
+- Writes a `remove` (or `remove_failed`) row to `face_audit_log`.
+- Returns `{ success }`.
+
+**Wiring:**
+- `FaceEnrollment.tsx` — add a "Remove face" action on each enrolled student that calls `luxand-delete-face`.
+- `StudentManagement.tsx` — when admin deletes a student, if `luxand_person_uuid` is set, call `luxand-delete-face` first; then delete the student row. If Luxand returns "person not found" we treat it as success and proceed.
+
+A `students` row delete that happens via SQL (bulk) won't trigger Luxand cleanup — flag this clearly in the delete confirmation dialog so admins know to use the UI flow.
+
+## 4. Real-time per-student enrollment status
+
+**Schema additions on `students`:**
+```text
+enrollment_status   text default 'not_enrolled'   -- 'not_enrolled' | 'pending' | 'synced' | 'failed'
+enrollment_error    text null
+enrollment_synced_at timestamptz null
+```
+
+Backfill: rows with `face_enrolled=true` → `synced` (using `created_at` as `enrollment_synced_at`).
+
+**`luxand-enroll` updates:**
+- On entry: set status `pending`, clear error.
+- On Luxand success: status `synced`, `enrollment_synced_at = now()`, error null.
+- On failure: status `failed`, `enrollment_error` = Luxand's message; do NOT flip `face_enrolled`.
+
+Audit-log row written either way.
+
+**UI:**
+- Status column on `FaceEnrollment.tsx` and `StudentManagement.tsx` rendering a colored pill: green Synced, amber Pending (spinner), red Failed (with tooltip showing `enrollment_error`), grey Not enrolled. Failed rows get a "Retry" button that re-opens the enrollment modal.
+- Subscribe via `supabase.channel('students-enrollment').on('postgres_changes', { event:'UPDATE', schema:'public', table:'students' })` so status flips live as the edge function progresses or other admins act.
+- `ALTER PUBLICATION supabase_realtime ADD TABLE public.students;` and `ALTER TABLE public.students REPLICA IDENTITY FULL;`.
 
 ## Files touched
 
 ```text
-NEW  supabase/migrations/<ts>_add_luxand_person_uuid.sql
-NEW  supabase/functions/luxand-enroll/index.ts
-NEW  supabase/functions/luxand-recognize/index.ts
-EDIT src/pages/admin/FaceEnrollment.tsx        (wire handleEnroll)
-EDIT src/pages/faculty/UploadPhoto.tsx         (wire startRecognition)
-EDIT src/components/landing/*.tsx              (text only — Luxand branding)
+NEW  supabase/migrations/<ts>_face_audit_and_status.sql
+NEW  supabase/functions/luxand-status/index.ts
+NEW  supabase/functions/luxand-set-token/index.ts
+NEW  supabase/functions/luxand-delete-face/index.ts
+EDIT supabase/functions/luxand-enroll/index.ts        (status updates + audit log)
+NEW  src/pages/admin/Settings.tsx
+NEW  src/pages/admin/AuditLog.tsx
+EDIT src/pages/admin/FaceEnrollment.tsx               (status pill, remove, retry, realtime)
+EDIT src/pages/admin/StudentManagement.tsx            (status column, delete flow calls luxand-delete-face)
+EDIT src/layouts/AdminLayout.tsx                      (Settings + Audit Log nav items)
+EDIT src/App.tsx                                      (two new admin routes)
 ```
 
-## Out of scope (ask later if you want them)
-
-- Removing a student's face from Luxand when deleted (can add a `luxand-delete` function later)
-- Re-enrollment with multiple photos per student for higher accuracy (Luxand supports it; we'll start with one)
-- Quota usage dashboard
-
-## Order of operations once you approve
-
-1. Ask you for the `LUXAND_API_TOKEN` secret — **stop and wait until you provide it**
-2. Run the DB migration
-3. Create the two edge functions (auto-deployed)
-4. Update the two pages + landing text
-5. You test enrollment on one student, then a classroom photo
+## Out of scope
+- Bulk re-sync / "reconcile with Luxand" tool.
+- Per-faculty access to audit log.
+- Email alerts on `failed` status.
