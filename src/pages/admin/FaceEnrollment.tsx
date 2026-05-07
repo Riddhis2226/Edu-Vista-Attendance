@@ -87,7 +87,9 @@ const FaceEnrollment = () => {
     const f = files[0];
     if (f) {
       setFile(f);
-      setPreview(URL.createObjectURL(f));
+      const reader = new FileReader();
+      reader.onload = () => setPreview(reader.result as string);
+      reader.readAsDataURL(f);
       setMode('upload');
     }
   }, []);
