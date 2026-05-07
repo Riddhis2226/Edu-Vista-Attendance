@@ -225,8 +225,8 @@ const UploadPhoto = () => {
           <div {...getRootProps()} className={`border-2 border-dashed rounded-xl p-12 text-center cursor-pointer transition-all ${isDragActive ? 'border-success bg-success/10 drag-zone-active' : 'border-border hover:border-primary/50'}`}>
             <input {...getInputProps()} />
             <Upload className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-            <p className="text-muted-foreground">Drop classroom photos here or click to browse</p>
-            <p className="text-xs text-muted-foreground mt-1">JPG, PNG, WEBP, BMP accepted</p>
+            <p className="text-muted-foreground">Drop 1–5 classroom photos here or click to browse</p>
+            <p className="text-xs text-muted-foreground mt-1">JPG, PNG, WEBP, BMP — up to 5 photos per session ({files.length}/{MAX_FILES})</p>
           </div>
 
           {previews.length > 0 && (
