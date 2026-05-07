@@ -14,6 +14,7 @@ import { toast } from 'sonner';
 import TypewriterText from '@/components/TypewriterText';
 import SkeletonTable from '@/components/SkeletonTable';
 import EmptyState from '@/components/EmptyState';
+import EnrollmentStatusPill from '@/components/EnrollmentStatusPill';
 import Papa from 'papaparse';
 import * as XLSX from 'xlsx';
 import { useDropzone } from 'react-dropzone';
@@ -31,6 +32,9 @@ interface Student {
   school_institute: string | null;
   batch: string | null;
   face_enrolled: boolean | null;
+  luxand_person_uuid?: string | null;
+  enrollment_status?: string | null;
+  enrollment_error?: string | null;
 }
 
 const StudentManagement = () => {
@@ -130,6 +134,15 @@ const StudentManagement = () => {
     if (!deleteStudent) return;
     setShaking(true);
     setTimeout(() => setShaking(false), 500);
+    // If student has a Luxand person, clean it up first via edge function (also deletes the face image and writes audit log).
+    if (deleteStudent.luxand_person_uuid || deleteStudent.face_enrolled) {
+      const { error: fnErr } = await supabase.functions.invoke('luxand-delete-face', {
+        body: { student_id: deleteStudent.id },
+      });
+      if (fnErr) {
+        toast.warning(`Could not clean up Luxand record: ${fnErr.message}. Continuing with delete.`);
+      }
+    }
     const { error } = await supabase.from('students').delete().eq('id', deleteStudent.id);
     if (error) toast.error(error.message); else toast.success('Student deleted');
     setDeleteStudent(null);
@@ -416,9 +429,11 @@ const StudentManagement = () => {
                         <TableCell>{s.section || '—'}</TableCell>
                         <TableCell>{s.batch || '—'}</TableCell>
                         <TableCell>
-                          <Badge variant={s.face_enrolled ? 'default' : 'destructive'} className={s.face_enrolled ? 'bg-success text-success-foreground' : ''}>
-                            {s.face_enrolled ? '✓' : '✗'}
-                          </Badge>
+                          <EnrollmentStatusPill
+                            status={s.enrollment_status}
+                            error={s.enrollment_error}
+                            enrolled={s.face_enrolled}
+                          />
                         </TableCell>
                         <TableCell>
                           <div className="flex gap-1">
@@ -475,6 +490,9 @@ const StudentManagement = () => {
         <DialogContent className={`glass-card ${shaking ? 'animate-shake' : ''}`}>
           <DialogHeader><DialogTitle>Delete Student</DialogTitle></DialogHeader>
           <p className="text-muted-foreground">Are you sure you want to delete <strong>{deleteStudent?.full_name}</strong>?</p>
+          {deleteStudent?.face_enrolled && (
+            <p className="text-xs text-warning">Their Luxand face record and stored image will also be removed.</p>
+          )}
           <DialogFooter>
             <Button variant="outline" onClick={() => setDeleteStudent(null)}>Cancel</Button>
             <Button variant="destructive" onClick={handleDelete}>Delete</Button>
