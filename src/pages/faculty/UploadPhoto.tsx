@@ -63,13 +63,22 @@ const UploadPhoto = () => {
   const [facesDetected, setFacesDetected] = useState(0);
   const [saved, setSaved] = useState(false);
 
+  const MAX_FILES = 5;
   const onDrop = useCallback((accepted: File[]) => {
-    setFiles(prev => [...prev, ...accepted]);
-    setPreviews(prev => [...prev, ...accepted.map(f => URL.createObjectURL(f))]);
+    setFiles(prev => {
+      const combined = [...prev, ...accepted];
+      if (combined.length > MAX_FILES) {
+        toast.warning(`You can upload up to ${MAX_FILES} photos. Extra files were ignored.`);
+      }
+      const trimmed = combined.slice(0, MAX_FILES);
+      const added = trimmed.slice(prev.length);
+      setPreviews(p => [...p, ...added.map(f => URL.createObjectURL(f))]);
+      return trimmed;
+    });
   }, []);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
-    onDrop, accept: { 'image/*': ['.jpg', '.jpeg', '.png', '.webp', '.bmp'] }, multiple: true,
+    onDrop, accept: { 'image/*': ['.jpg', '.jpeg', '.png', '.webp', '.bmp'] }, multiple: true, maxFiles: MAX_FILES,
   });
 
   const removeFile = (idx: number) => {
