@@ -49,10 +49,21 @@ Deno.serve(async (req) => {
     }
 
     const t0 = Date.now();
-    const fd = new FormData();
-    fd.append("photo", imageUrl);
 
-    const res = await fetch("https://api.luxand.cloud/photo/search/v2", {
+    // Luxand's photo URL parser breaks on query strings (especially with `&`).
+    // Fetch the image ourselves and forward the raw bytes.
+    const imgRes = await fetch(imageUrl);
+    if (!imgRes.ok) {
+      return json(400, { error: `Could not fetch image (HTTP ${imgRes.status})` });
+    }
+    const contentType = imgRes.headers.get("content-type") || "image/jpeg";
+    const imgBuf = await imgRes.arrayBuffer();
+    const blob = new Blob([imgBuf], { type: contentType });
+
+    const fd = new FormData();
+    fd.append("photo", blob, "demo.jpg");
+
+    const res = await fetch("https://api.luxand.cloud/photo/detect", {
       method: "POST",
       headers: { token: LUXAND_TOKEN },
       body: fd,
@@ -68,20 +79,24 @@ Deno.serve(async (req) => {
 
     const faces = Array.isArray(data) ? data : (data?.faces || []);
     // Strip any identifying info — return only counts, boxes, probability buckets
-    const sanitized = faces.map((f: any, idx: number) => ({
-      index: idx,
-      probability: typeof f?.probability === "number" ? f.probability : null,
-      rectangle: f?.rectangle
-        ? {
-            left: f.rectangle.left,
-            top: f.rectangle.top,
-            right: f.rectangle.right,
-            bottom: f.rectangle.bottom,
-          }
-        : null,
-      // Whether Luxand recognized this face against ITS demo collection (not ours)
-      recognized: !!f?.uuid,
-    }));
+    const sanitized = faces.map((f: any, idx: number) => {
+      const rect = f?.rectangle || f?.bbox || f?.box;
+      return {
+        index: idx,
+        probability: typeof f?.probability === "number"
+          ? f.probability
+          : (typeof f?.confidence === "number" ? f.confidence : null),
+        rectangle: rect
+          ? {
+              left: rect.left ?? rect.x ?? rect.x1,
+              top: rect.top ?? rect.y ?? rect.y1,
+              right: rect.right ?? rect.x2 ?? ((rect.x ?? 0) + (rect.width ?? 0)),
+              bottom: rect.bottom ?? rect.y2 ?? ((rect.y ?? 0) + (rect.height ?? 0)),
+            }
+          : null,
+        recognized: !!f?.uuid,
+      };
+    });
 
     return json(200, {
       success: true,
