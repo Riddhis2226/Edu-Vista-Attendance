@@ -158,19 +158,48 @@ const UploadPhoto = () => {
 
       {phase === 'upload' && (
         <div className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-2xl">
-            <div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-w-4xl">
+            <div className="md:col-span-2 lg:col-span-3">
               <Label>Subject</Label>
               <Input value={subject} onChange={e => setSubject(e.target.value)} className="bg-muted/30 mt-1" placeholder="e.g. Data Structures" />
             </div>
             <div>
+              <Label>Program</Label>
+              <Select value={program} onValueChange={setProgram}>
+                <SelectTrigger className="bg-muted/30 mt-1"><SelectValue placeholder="All Programs" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Programs</SelectItem>
+                  {programOptions.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
               <Label>Batch</Label>
               <Select value={batch} onValueChange={setBatch}>
-                <SelectTrigger className="bg-muted/30 mt-1"><SelectValue placeholder="Select batch" /></SelectTrigger>
+                <SelectTrigger className="bg-muted/30 mt-1"><SelectValue placeholder="All Batches" /></SelectTrigger>
                 <SelectContent>
-                  {batchOptions.length === 0 ? (
-                    <SelectItem value="__none" disabled>No batches found</SelectItem>
-                  ) : batchOptions.map(b => <SelectItem key={b} value={b}>{b}</SelectItem>)}
+                  <SelectItem value="all">All Batches</SelectItem>
+                  {batchOptions.map(b => <SelectItem key={b} value={b}>{b}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Semester</Label>
+              <Select value={semester} onValueChange={setSemester}>
+                <SelectTrigger className="bg-muted/30 mt-1"><SelectValue placeholder="All Semesters" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Semesters</SelectItem>
+                  {semesterOptions.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Section</Label>
+              <Select value={section} onValueChange={setSection}>
+                <SelectTrigger className="bg-muted/30 mt-1"><SelectValue placeholder="All Sections" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Sections</SelectItem>
+                  {sectionOptions.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
