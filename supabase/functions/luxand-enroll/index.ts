@@ -102,13 +102,18 @@ Deno.serve(async (req) => {
       .update({ enrollment_status: "pending", enrollment_error: null })
       .eq("id", student.id);
 
-    const b64 = body.image_base64.includes(",")
+    let b64 = body.image_base64.includes(",")
       ? body.image_base64.split(",")[1]
       : body.image_base64;
+    b64 = b64.replace(/\s/g, "");
     let bytes: Uint8Array;
     try {
-      bytes = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
-    } catch {
+      if (!/^[A-Za-z0-9+/]+={0,2}$/.test(b64)) throw new Error("bad base64");
+      const bin = atob(b64);
+      bytes = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    } catch (decodeErr) {
+      console.error("base64 decode failed", decodeErr, "len:", body.image_base64?.length);
       await adminClient
         .from("students")
         .update({ enrollment_status: "failed", enrollment_error: "Invalid image data" })
