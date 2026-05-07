@@ -24,12 +24,11 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_ANON_KEY")!,
       { global: { headers: { Authorization: authHeader } } },
     );
-    const token = authHeader.replace("Bearer ", "");
-    const { data: claimsData } = await supabase.auth.getClaims(token);
-    if (!claimsData?.claims) return json(401, { error: "Unauthorized" });
+    const { data: userData } = await supabase.auth.getUser();
+    if (!userData?.user) return json(401, { error: "Unauthorized" });
 
     const { data: roleRow } = await supabase
-      .from("user_roles").select("role").eq("user_id", claimsData.claims.sub).maybeSingle();
+      .from("user_roles").select("role").eq("user_id", userData.user.id).maybeSingle();
     if (roleRow?.role !== "admin") return json(403, { error: "Forbidden" });
 
     const LUXAND_TOKEN = Deno.env.get("LUXAND_API_TOKEN");
