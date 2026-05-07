@@ -87,7 +87,7 @@ const UploadPhoto = () => {
   });
 
   const startRecognition = async () => {
-    if (files.length === 0 || !subject || !batch) return;
+    if (files.length === 0 || !subject) return;
     setPhase('processing');
     try {
       updateStep(0, 'active');
@@ -96,7 +96,13 @@ const UploadPhoto = () => {
 
       updateStep(1, 'active');
       const { data, error } = await supabase.functions.invoke('luxand-recognize', {
-        body: { batch, images },
+        body: {
+          batch: batch !== 'all' ? batch : undefined,
+          program: program !== 'all' ? program : undefined,
+          semester: semester !== 'all' ? semester : undefined,
+          section: section !== 'all' ? section : undefined,
+          images,
+        },
       });
       updateStep(1, 'done');
       if (error) throw error;
