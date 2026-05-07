@@ -70,20 +70,24 @@ Deno.serve(async (req) => {
 
     const faces = Array.isArray(data) ? data : (data?.faces || []);
     // Strip any identifying info — return only counts, boxes, probability buckets
-    const sanitized = faces.map((f: any, idx: number) => ({
-      index: idx,
-      probability: typeof f?.probability === "number" ? f.probability : null,
-      rectangle: f?.rectangle
-        ? {
-            left: f.rectangle.left,
-            top: f.rectangle.top,
-            right: f.rectangle.right,
-            bottom: f.rectangle.bottom,
-          }
-        : null,
-      // Whether Luxand recognized this face against ITS demo collection (not ours)
-      recognized: !!f?.uuid,
-    }));
+    const sanitized = faces.map((f: any, idx: number) => {
+      const rect = f?.rectangle || f?.bbox || f?.box;
+      return {
+        index: idx,
+        probability: typeof f?.probability === "number"
+          ? f.probability
+          : (typeof f?.confidence === "number" ? f.confidence : null),
+        rectangle: rect
+          ? {
+              left: rect.left ?? rect.x ?? rect.x1,
+              top: rect.top ?? rect.y ?? rect.y1,
+              right: rect.right ?? rect.x2 ?? ((rect.x ?? 0) + (rect.width ?? 0)),
+              bottom: rect.bottom ?? rect.y2 ?? ((rect.y ?? 0) + (rect.height ?? 0)),
+            }
+          : null,
+        recognized: !!f?.uuid,
+      };
+    });
 
     return json(200, {
       success: true,
