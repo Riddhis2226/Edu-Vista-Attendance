@@ -101,6 +101,45 @@ export type Database = {
         }
         Relationships: []
       }
+      face_audit_log: {
+        Row: {
+          action: string
+          admin_name: string | null
+          admin_user_id: string | null
+          created_at: string
+          enrollment_no: string | null
+          error_message: string | null
+          id: string
+          luxand_person_uuid: string | null
+          student_id: string | null
+          student_name: string | null
+        }
+        Insert: {
+          action: string
+          admin_name?: string | null
+          admin_user_id?: string | null
+          created_at?: string
+          enrollment_no?: string | null
+          error_message?: string | null
+          id?: string
+          luxand_person_uuid?: string | null
+          student_id?: string | null
+          student_name?: string | null
+        }
+        Update: {
+          action?: string
+          admin_name?: string | null
+          admin_user_id?: string | null
+          created_at?: string
+          enrollment_no?: string | null
+          error_message?: string | null
+          id?: string
+          luxand_person_uuid?: string | null
+          student_id?: string | null
+          student_name?: string | null
+        }
+        Relationships: []
+      }
       lecture_targets: {
         Row: {
           batch: string
@@ -146,7 +185,10 @@ export type Database = {
           branch: string | null
           created_at: string
           email: string | null
+          enrollment_error: string | null
           enrollment_no: string
+          enrollment_status: string
+          enrollment_synced_at: string | null
           face_enrolled: boolean | null
           face_image_url: string | null
           full_name: string
@@ -163,7 +205,10 @@ export type Database = {
           branch?: string | null
           created_at?: string
           email?: string | null
+          enrollment_error?: string | null
           enrollment_no: string
+          enrollment_status?: string
+          enrollment_synced_at?: string | null
           face_enrolled?: boolean | null
           face_image_url?: string | null
           full_name: string
@@ -180,7 +225,10 @@ export type Database = {
           branch?: string | null
           created_at?: string
           email?: string | null
+          enrollment_error?: string | null
           enrollment_no?: string
+          enrollment_status?: string
+          enrollment_synced_at?: string | null
           face_enrolled?: boolean | null
           face_image_url?: string | null
           full_name?: string
