@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { ScanFace, Upload, Camera, Check, Loader2, Search } from 'lucide-react';
+import { ScanFace, Upload, Camera, Check, Loader2, Search, Trash2, RefreshCw } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { toast } from 'sonner';
 import TypewriterText from '@/components/TypewriterText';
 import SkeletonTable from '@/components/SkeletonTable';
+import EnrollmentStatusPill from '@/components/EnrollmentStatusPill';
 import { useDropzone } from 'react-dropzone';
 import Webcam from 'react-webcam';
 
@@ -54,6 +55,33 @@ const FaceEnrollment = () => {
   }, [search, programFilter, batchFilter]);
 
   useEffect(() => { fetchStudents(); }, [fetchStudents]);
+
+  // Realtime: live status updates
+  useEffect(() => {
+    const ch = supabase
+      .channel('students-enrollment')
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'students' }, (payload) => {
+        const updated = payload.new as any;
+        setStudents((prev) => prev.map((s) => (s.id === updated.id ? { ...s, ...updated } : s)));
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, []);
+
+  const handleRemoveFace = async (s: any) => {
+    if (!confirm(`Remove face data for ${s.full_name}? This deletes the Luxand person and the stored image.`)) return;
+    try {
+      const { data, error } = await supabase.functions.invoke('luxand-delete-face', {
+        body: { student_id: s.id },
+      });
+      if (error) throw error;
+      if (data?.warning) toast.warning(`Removed locally. Luxand: ${data.warning}`);
+      else toast.success('Face removed');
+      fetchStudents();
+    } catch (e: any) {
+      toast.error(e?.message || 'Remove failed');
+    }
+  };
 
   const onDrop = useCallback((files: File[]) => {
     const f = files[0];
@@ -154,14 +182,23 @@ const FaceEnrollment = () => {
                       <TableCell>{s.program || '—'}</TableCell>
                       <TableCell className="text-muted-foreground">{s.batch || '—'}</TableCell>
                       <TableCell>
-                        <Badge variant={s.face_enrolled ? 'default' : 'destructive'} className={s.face_enrolled ? 'bg-success text-success-foreground' : ''}>
-                          {s.face_enrolled ? '✓ Enrolled' : '✗ Not Enrolled'}
-                        </Badge>
+                        <EnrollmentStatusPill
+                          status={s.enrollment_status}
+                          error={s.enrollment_error}
+                          enrolled={s.face_enrolled}
+                        />
                       </TableCell>
                       <TableCell>
-                        <Button size="sm" variant="outline" onClick={() => { setSelected(s); setMode(null); setPreview(null); setEnrolled(false); }}>
-                          <ScanFace className="h-4 w-4 mr-1" /> Enroll
-                        </Button>
+                        <div className="flex gap-1">
+                          <Button size="sm" variant="outline" onClick={() => { setSelected(s); setMode(null); setPreview(null); setEnrolled(false); }}>
+                            {s.enrollment_status === 'failed' ? <><RefreshCw className="h-4 w-4 mr-1" /> Retry</> : <><ScanFace className="h-4 w-4 mr-1" /> {s.face_enrolled ? 'Re-enroll' : 'Enroll'}</>}
+                          </Button>
+                          {s.face_enrolled && (
+                            <Button size="sm" variant="ghost" className="hover:text-destructive" onClick={() => handleRemoveFace(s)}>
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          )}
+                        </div>
                       </TableCell>
                     </motion.tr>
                   ))}
