@@ -59,6 +59,8 @@ const UploadPhoto = () => {
     { label: 'Generating Report', status: 'pending' },
   ]);
   const [results, setResults] = useState<any[]>([]);
+  const [recognitionMode, setRecognitionMode] = useState<'recognized' | 'detected' | 'estimated'>('recognized');
+  const [facesDetected, setFacesDetected] = useState(0);
   const [saved, setSaved] = useState(false);
 
   const onDrop = useCallback((accepted: File[]) => {
