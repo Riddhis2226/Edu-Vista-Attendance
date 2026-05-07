@@ -29,15 +29,14 @@ Deno.serve(async (req) => {
       { global: { headers: { Authorization: authHeader } } },
     );
 
-    const token = authHeader.replace("Bearer ", "");
-    const { data: claimsData, error: claimsErr } = await userClient.auth.getClaims(token);
-    if (claimsErr || !claimsData?.claims) return json(401, { error: "Unauthorized" });
+    const { data: userData, error: userErr } = await userClient.auth.getUser();
+    if (userErr || !userData?.user) return json(401, { error: "Unauthorized" });
 
     // Confirm caller is an admin
     const { data: roleRow, error: roleErr } = await userClient
       .from("user_roles")
       .select("role")
-      .eq("user_id", claimsData.claims.sub as string)
+      .eq("user_id", userData.user.id)
       .maybeSingle();
     if (roleErr || roleRow?.role !== "admin") return json(403, { error: "Forbidden" });
 
