@@ -22,15 +22,32 @@ const UploadPhoto = () => {
   const [files, setFiles] = useState<File[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
   const [subject, setSubject] = useState('');
-  const [batch, setBatch] = useState('');
+  const [program, setProgram] = useState<string>('all');
+  const [batch, setBatch] = useState<string>('all');
+  const [semester, setSemester] = useState<string>('all');
+  const [section, setSection] = useState<string>('all');
+  const [programOptions, setProgramOptions] = useState<string[]>([]);
   const [batchOptions, setBatchOptions] = useState<string[]>([]);
+  const [semesterOptions, setSemesterOptions] = useState<string[]>([]);
+  const [sectionOptions, setSectionOptions] = useState<string[]>([]);
 
   useEffect(() => {
     (async () => {
-      const { data } = await supabase.from('students').select('batch');
-      const set = new Set<string>();
-      (data || []).forEach((s: any) => s.batch && set.add(s.batch));
-      setBatchOptions(Array.from(set).sort());
+      const { data } = await supabase.from('students').select('program, batch, semester, section');
+      const progs = new Set<string>();
+      const batches = new Set<string>();
+      const sems = new Set<string>();
+      const secs = new Set<string>();
+      (data || []).forEach((s: any) => {
+        if (s.program) progs.add(s.program);
+        if (s.batch) batches.add(s.batch);
+        if (s.semester) sems.add(s.semester);
+        if (s.section) secs.add(s.section);
+      });
+      setProgramOptions(Array.from(progs).sort());
+      setBatchOptions(Array.from(batches).sort());
+      setSemesterOptions(Array.from(sems).sort());
+      setSectionOptions(Array.from(secs).sort());
     })();
   }, []);
   const [phase, setPhase] = useState<'upload' | 'processing' | 'results'>('upload');
