@@ -59,6 +59,8 @@ const UploadPhoto = () => {
     { label: 'Generating Report', status: 'pending' },
   ]);
   const [results, setResults] = useState<any[]>([]);
+  const [recognitionMode, setRecognitionMode] = useState<'recognized' | 'detected' | 'estimated'>('recognized');
+  const [facesDetected, setFacesDetected] = useState(0);
   const [saved, setSaved] = useState(false);
 
   const onDrop = useCallback((accepted: File[]) => {
@@ -112,7 +114,13 @@ const UploadPhoto = () => {
       updateStep(3, 'done');
       updateStep(4, 'done');
 
-      if (data.enrolled_count === 0) {
+      setRecognitionMode(data.mode || 'recognized');
+      setFacesDetected(data.faces_detected || 0);
+      if (data.mode === 'detected') {
+        toast.warning(`Face matching unavailable — auto-marked ${data.faces_detected} students present from detected faces. Please review.`);
+      } else if (data.mode === 'estimated') {
+        toast.warning('Face engine unavailable — applied estimated attendance. Please review every row.');
+      } else if (data.enrolled_count === 0) {
         toast.warning('No students in this batch have enrolled faces yet.');
       } else {
         toast.success(`Matched ${data.matched_count} of ${data.enrolled_count} enrolled students.`);
@@ -246,6 +254,14 @@ const UploadPhoto = () => {
             <Badge className="bg-destructive/20 text-destructive text-base px-4 py-1">{absentCount} Absent</Badge>
           </div>
 
+          {recognitionMode !== 'recognized' && (
+            <div className="rounded-md border border-warning/40 bg-warning/10 p-3 text-sm text-warning">
+              {recognitionMode === 'detected'
+                ? `Backup mode: ${facesDetected} faces detected but not matched to enrolled records. Students were auto-marked present in enrollment order — please review and adjust before saving.`
+                : 'Backup mode: face engine unavailable. An estimated attendance was applied — please verify every row.'}
+            </div>
+          )}
+
           <Card className="glass-card">
             <CardContent className="p-0">
               <Table>
@@ -259,7 +275,13 @@ const UploadPhoto = () => {
                     <motion.tr key={r.enrollment_no} initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.05 }}
                       className="border-b border-border">
                       <TableCell className="font-mono">{r.enrollment_no}</TableCell>
-                      <TableCell>{r.student_name}</TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <span>{r.student_name}</span>
+                          {r.auto_detected && <Badge variant="outline" className="text-xs border-warning/50 text-warning">auto</Badge>}
+                          {r.fallback && <Badge variant="outline" className="text-xs border-warning/50 text-warning">estimated</Badge>}
+                        </div>
+                      </TableCell>
                       <TableCell><Badge className={r.status === 'present' ? 'bg-success text-success-foreground' : 'bg-destructive text-destructive-foreground'}>{r.status === 'present' ? '✓ Present' : '✗ Absent'}</Badge></TableCell>
                       <TableCell>{r.confidence ? `${(r.confidence * 100).toFixed(1)}%` : '—'}</TableCell>
                     </motion.tr>
