@@ -57,8 +57,21 @@ Deno.serve(async (req) => {
     for (let i = 0; i < body.images.length; i++) {
       const img = body.images[i];
       if (typeof img !== "string") continue;
-      const b64 = img.includes(",") ? img.split(",")[1] : img;
-      const bytes = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
+      let b64 = img.includes(",") ? img.split(",")[1] : img;
+      b64 = b64.replace(/\s/g, "");
+      if (!/^[A-Za-z0-9+/]+={0,2}$/.test(b64)) {
+        console.warn(`image ${i}: invalid base64`);
+        continue;
+      }
+      let bytes: Uint8Array;
+      try {
+        const bin = atob(b64);
+        bytes = new Uint8Array(bin.length);
+        for (let j = 0; j < bin.length; j++) bytes[j] = bin.charCodeAt(j);
+      } catch (e) {
+        console.warn(`image ${i}: decode failed`, e);
+        continue;
+      }
       const blob = new Blob([bytes], { type: "image/jpeg" });
 
       const fd = new FormData();
@@ -72,15 +85,14 @@ Deno.serve(async (req) => {
 
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        console.warn(`Luxand search failed for image ${i}:`, res.status, data);
+        console.warn(`Luxand search failed for image ${i}:`, res.status, JSON.stringify(data));
         continue;
       }
 
-      // Response is an array of detected faces, each with `uuid` (matched person) and `probability`
-      const faces = Array.isArray(data) ? data : (data.faces || []);
+      const faces = Array.isArray(data) ? data : (data.faces || data.results || []);
       for (const face of faces) {
-        const uuid: string | undefined = face?.uuid || face?.person?.uuid;
-        const prob: number = Number(face?.probability ?? face?.confidence ?? 0);
+        const uuid: string | undefined = face?.uuid || face?.person?.uuid || face?.person_uuid;
+        const prob: number = Number(face?.probability ?? face?.confidence ?? face?.score ?? 0);
         if (uuid && prob > 0) {
           const prev = matchMap.get(uuid) || 0;
           if (prob > prev) matchMap.set(uuid, prob);
