@@ -39,6 +39,10 @@ Deno.serve(async (req) => {
     ) {
       return json(400, { error: "images[] are required" });
     }
+    const MAX_IMAGES = 20;
+    if (body.images.length > MAX_IMAGES) {
+      return json(400, { error: `Maximum ${MAX_IMAGES} images per request` });
+    }
 
     // Load enrolled students with optional filters
     let query = supabase
@@ -49,7 +53,10 @@ Deno.serve(async (req) => {
     if (typeof body.semester === "string" && body.semester) query = query.eq("semester", body.semester);
     if (typeof body.section === "string" && body.section) query = query.eq("section", body.section);
     const { data: students, error: stuErr } = await query;
-    if (stuErr) return json(500, { error: `Student fetch failed: ${stuErr.message}` });
+    if (stuErr) {
+      console.error("luxand-recognize student fetch failed:", stuErr);
+      return json(500, { error: "An internal error occurred" });
+    }
 
     const enrolledStudents = (students || []).filter((s) => s.luxand_person_uuid);
     const allBatchStudents = students || [];
