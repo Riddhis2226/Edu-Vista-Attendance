@@ -132,7 +132,8 @@ const UploadPhoto = () => {
     const absent = results.filter(r => r.status === 'absent').length;
 
     const { data: session, error: sessErr } = await supabase.from('attendance_sessions').insert({
-      subject, batch, faculty_id: user.id, faculty_name: userName, method: 'ai_photo' as const,
+      subject, batch: batch !== 'all' ? batch : (program !== 'all' ? program : 'All'),
+      faculty_id: user.id, faculty_name: userName, method: 'ai_photo' as const,
       total_present: present, total_absent: absent,
     }).select().single();
 
