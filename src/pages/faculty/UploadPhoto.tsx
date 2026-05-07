@@ -225,7 +225,7 @@ const UploadPhoto = () => {
             </div>
           )}
 
-          <Button onClick={startRecognition} disabled={files.length === 0 || !subject || !batch} className="btn-shimmer" size="lg">
+          <Button onClick={startRecognition} disabled={files.length === 0 || !subject} className="btn-shimmer" size="lg">
             Start Recognition
           </Button>
         </div>
