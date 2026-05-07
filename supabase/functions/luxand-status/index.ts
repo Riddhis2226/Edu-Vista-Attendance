@@ -63,6 +63,7 @@ Deno.serve(async (req) => {
       person_count: count,
     });
   } catch (e) {
-    return json(500, { ok: false, message: (e as Error).message });
+    console.error("luxand-status error:", e);
+    return json(500, { ok: false, message: "An internal error occurred" });
   }
 });

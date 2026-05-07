@@ -47,6 +47,16 @@ Deno.serve(async (req) => {
     if (!imageUrl || typeof imageUrl !== "string" || !imageUrl.startsWith("https://")) {
       return json(400, { error: "image_url (https) is required" });
     }
+    const ALLOWED_HOSTS = new Set([
+      "images.unsplash.com",
+      "upload.wikimedia.org",
+      "plus.unsplash.com",
+    ]);
+    let parsedUrl: URL;
+    try { parsedUrl = new URL(imageUrl); } catch { return json(400, { error: "Invalid image_url" }); }
+    if (!ALLOWED_HOSTS.has(parsedUrl.hostname)) {
+      return json(400, { error: "Image host not allowed" });
+    }
 
     const t0 = Date.now();
 

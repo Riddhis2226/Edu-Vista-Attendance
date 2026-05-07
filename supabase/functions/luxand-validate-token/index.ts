@@ -56,6 +56,7 @@ Deno.serve(async (req) => {
     }
     return json(200, { valid: true, message: "Token is valid" });
   } catch (e) {
-    return json(500, { error: (e as Error).message });
+    console.error("luxand-validate-token error:", e);
+    return json(500, { error: "An internal error occurred" });
   }
 });
