@@ -52,7 +52,9 @@ Deno.serve(async (req) => {
     const fd = new FormData();
     fd.append("photo", imageUrl);
 
-    const res = await fetch("https://api.luxand.cloud/photo/search/v2", {
+    // Use detection endpoint — returns ALL faces in the image, not just
+    // ones matched against an enrolled collection.
+    const res = await fetch("https://api.luxand.cloud/photo/detect", {
       method: "POST",
       headers: { token: LUXAND_TOKEN },
       body: fd,
