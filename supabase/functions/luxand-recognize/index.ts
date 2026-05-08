@@ -84,92 +84,51 @@ Deno.serve(async (req) => {
       }
     }
 
-    // ===== Tier 1: Recognition via Luxand search =====
-    const matchMap = new Map<string, number>();
-    for (const { i, blob } of decoded) {
-      const fd = new FormData();
-      fd.append("photo", blob, `classroom_${i}.jpg`);
-      const res = await fetch("https://api.luxand.cloud/photo/search/v2", {
-        method: "POST",
-        headers: { token: LUXAND_TOKEN },
-        body: fd,
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        console.warn(`Luxand search failed for image ${i}:`, res.status, JSON.stringify(data));
-        continue;
-      }
-      const faces = Array.isArray(data) ? data : (data.faces || data.results || []);
-      for (const face of faces) {
-        const uuid: string | undefined = face?.uuid || face?.person?.uuid || face?.person_uuid;
-        const prob: number = Number(face?.probability ?? face?.confidence ?? face?.score ?? 0);
-        if (uuid && prob > 0) {
-          const prev = matchMap.get(uuid) || 0;
-          if (prob > prev) matchMap.set(uuid, prob);
-        }
-      }
-    }
-
-    let mode: "recognized" | "detected" | "estimated" = "recognized";
+    // ===== Face detection only — count faces across all uploaded photos =====
+    let mode: "detected" | "estimated" = "detected";
     let facesDetected = 0;
 
-    // ===== Tier 2: Face detection fallback =====
-    if (matchMap.size === 0 && allBatchStudents.length > 0) {
-      mode = "detected";
-      for (const { i, blob } of decoded) {
-        const fd = new FormData();
-        fd.append("photo", blob, `detect_${i}.jpg`);
-        try {
-          const res = await fetch("https://api.luxand.cloud/photo/detect", {
-            method: "POST",
-            headers: { token: LUXAND_TOKEN },
-            body: fd,
-          });
-          const data = await res.json().catch(() => ({}));
-          if (res.ok) {
-            const faces = Array.isArray(data) ? data : (data.faces || data.results || []);
-            facesDetected += Array.isArray(faces) ? faces.length : 0;
-          } else {
-            console.warn(`Luxand detect failed for image ${i}:`, res.status);
-          }
-        } catch (e) {
-          console.warn(`Luxand detect error for image ${i}:`, e);
+    for (const { i, blob } of decoded) {
+      const fd = new FormData();
+      fd.append("photo", blob, `detect_${i}.jpg`);
+      try {
+        const res = await fetch("https://api.luxand.cloud/photo/detect", {
+          method: "POST",
+          headers: { token: LUXAND_TOKEN },
+          body: fd,
+        });
+        const data = await res.json().catch(() => ({}));
+        if (res.ok) {
+          const faces = Array.isArray(data) ? data : (data.faces || data.results || []);
+          facesDetected += Array.isArray(faces) ? faces.length : 0;
+        } else {
+          console.warn(`Luxand detect failed for image ${i}:`, res.status, JSON.stringify(data));
         }
-      }
-
-      // ===== Tier 3: Estimated fallback if detect failed too =====
-      if (facesDetected === 0 && decoded.length > 0) {
-        mode = "estimated";
-        facesDetected = Math.max(1, Math.round(allBatchStudents.length * 0.7));
+      } catch (e) {
+        console.warn(`Luxand detect error for image ${i}:`, e);
       }
     }
 
+    // Fallback: if detection returns nothing, estimate ~70% of class
+    if (facesDetected === 0 && decoded.length > 0 && allBatchStudents.length > 0) {
+      mode = "estimated";
+      facesDetected = Math.max(1, Math.round(allBatchStudents.length * 0.7));
+    }
+
+    // N faces detected => first N students (by enrollment order) marked present
     const autoCount = Math.min(facesDetected, allBatchStudents.length);
 
     const results = allBatchStudents.map((s, idx) => {
-      const conf = s.luxand_person_uuid ? matchMap.get(s.luxand_person_uuid) : undefined;
-      if (conf && conf > 0) {
-        return {
-          student_id: s.id,
-          enrollment_no: s.enrollment_no,
-          student_name: s.full_name,
-          status: "present",
-          confidence: conf,
-          enrolled: true,
-          auto_detected: false,
-          fallback: false,
-        };
-      }
-      const isAuto = mode !== "recognized" && idx < autoCount;
+      const isPresent = idx < autoCount;
       return {
         student_id: s.id,
         enrollment_no: s.enrollment_no,
         student_name: s.full_name,
-        status: isAuto ? "present" : "absent",
+        status: isPresent ? "present" : "absent",
         confidence: null,
         enrolled: !!s.luxand_person_uuid,
-        auto_detected: isAuto && mode === "detected",
-        fallback: isAuto && mode === "estimated",
+        auto_detected: isPresent && mode === "detected",
+        fallback: isPresent && mode === "estimated",
       };
     });
 
