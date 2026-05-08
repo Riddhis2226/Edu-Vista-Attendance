@@ -123,16 +123,12 @@ const UploadPhoto = () => {
       updateStep(3, 'done');
       updateStep(4, 'done');
 
-      setRecognitionMode(data.mode || 'recognized');
+      setRecognitionMode(data.mode || 'detected');
       setFacesDetected(data.faces_detected || 0);
-      if (data.mode === 'detected') {
-        toast.warning(`Face matching unavailable — auto-marked ${data.faces_detected} students present from detected faces. Please review.`);
-      } else if (data.mode === 'estimated') {
+      if (data.mode === 'estimated') {
         toast.warning('Face engine unavailable — applied estimated attendance. Please review every row.');
-      } else if (data.enrolled_count === 0) {
-        toast.warning('No students in this batch have enrolled faces yet.');
       } else {
-        toast.success(`Matched ${data.matched_count} of ${data.enrolled_count} enrolled students.`);
+        toast.success(`Detected ${data.faces_detected} face(s) — marked ${data.matched_count} student(s) present.`);
       }
       setResults(data.results || []);
       setPhase('results');
