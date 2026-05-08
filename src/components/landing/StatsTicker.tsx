@@ -3,9 +3,9 @@ import { motion, useInView } from 'framer-motion';
 import CountUp from '@/components/CountUp';
 
 const stats = [
-  { value: 99.5, suffix: '%', label: 'Face Match Accuracy (Luxand AI)' },
+  { value: 99.5, suffix: '%', label: 'Maximum Face Match Accuracy (Luxand AI)' },
   { value: 2, prefix: '< ', suffix: ' sec', label: 'Avg. Recognition Latency' },
-  { value: 50, prefix: '', suffix: '+ faces', label: 'Detected Per Photo' },
+  { value: 30, prefix: '', suffix: '+ faces', label: 'Detected Per Photo' },
   { value: 256, suffix: '-bit', label: 'AES Encryption In Transit' },
 ];
 
