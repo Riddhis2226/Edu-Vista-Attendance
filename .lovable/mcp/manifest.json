@@ -1,0 +1,159 @@
+{
+  "version": 1,
+  "sdk_version": "0.24.0",
+  "path": "/mcp",
+  "auth": {
+    "type": "oauth",
+    "issuer": "https://bzfnyhlvmesonfxapncc.supabase.co/auth/v1",
+    "accepted_audiences": [
+      "authenticated"
+    ]
+  },
+  "mcp": {
+    "server": {
+      "name": "eduvista-mcp",
+      "version": "0.1.0",
+      "title": "EduVista MCP"
+    },
+    "tools": [
+      {
+        "name": "list_students",
+        "title": "List students",
+        "description": "List students visible to the signed-in user (RLS scoped). Optional filters by batch, program, semester, section, or enrollment_no. Returns up to `limit` rows (default 50, max 200).",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "batch": {
+              "description": "Filter by batch (e.g. '2024-CSE').",
+              "type": "string"
+            },
+            "program": {
+              "type": "string"
+            },
+            "semester": {
+              "type": "string"
+            },
+            "section": {
+              "type": "string"
+            },
+            "enrollment_no": {
+              "description": "Exact enrollment number match.",
+              "type": "string"
+            },
+            "search": {
+              "description": "Substring match on full_name.",
+              "type": "string"
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 200
+            }
+          }
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "get_student_attendance",
+        "title": "Get student attendance summary",
+        "description": "Return recent attendance records and computed present/absent totals for a single student, looked up by enrollment_no. RLS applies.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "enrollment_no": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Student enrollment number."
+            },
+            "limit": {
+              "description": "Max records to return (default 100).",
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 500
+            }
+          },
+          "required": [
+            "enrollment_no"
+          ]
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "list_attendance_sessions",
+        "title": "List attendance sessions",
+        "description": "List attendance sessions visible to the signed-in user (RLS scoped). Optional filters by batch, subject, and date range.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "batch": {
+              "type": "string"
+            },
+            "subject": {
+              "type": "string"
+            },
+            "from_date": {
+              "description": "ISO date lower bound, inclusive.",
+              "type": "string"
+            },
+            "to_date": {
+              "description": "ISO date upper bound, inclusive.",
+              "type": "string"
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 200
+            }
+          }
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "list_lecture_targets",
+        "title": "List lecture targets",
+        "description": "List lecture / attendance targets visible to the signed-in user (RLS scoped). Optional filters by batch and subject.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "batch": {
+              "type": "string"
+            },
+            "subject": {
+              "type": "string"
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 200
+            }
+          }
+        },
+        "outputSchema": null
+      }
+    ]
+  }
+}
