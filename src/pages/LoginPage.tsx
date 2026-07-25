@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Loader2, CheckCircle2 } from 'lucide-react';
@@ -9,6 +9,13 @@ import AuthLayout from '@/layouts/AuthLayout';
 import FloatingInput from '@/components/FloatingInput';
 import eduvistaLogo from '@/assets/eduvista-logo.png';
 
+// Only allow same-origin relative paths so ?next= cannot be an open redirect.
+function safeNext(next: string | null): string | null {
+  if (!next) return null;
+  if (!next.startsWith('/') || next.startsWith('//')) return null;
+  return next;
+}
+
 const LoginPage: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -17,11 +24,16 @@ const LoginPage: React.FC = () => {
   const [error, setError] = useState(false);
   const { signIn, role } = useAuth();
   const navigate = useNavigate();
+  const [params] = useSearchParams();
+  const next = safeNext(params.get('next'));
 
   useEffect(() => {
-    if (role === 'admin') navigate('/admin');
+    if (!role) return;
+    if (next) navigate(next, { replace: true });
+    else if (role === 'admin') navigate('/admin');
     else if (role === 'faculty') navigate('/faculty');
-  }, [role, navigate]);
+  }, [role, navigate, next]);
+
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
