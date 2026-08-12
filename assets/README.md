@@ -1,7 +1,7 @@
 ```markdown
 assets/
-├── eduvista-logo.png
-├── eduvista-dashboard.png
-├── lovable-logo.png
-├── luxand-logo.png
-└── rfid-logo.png
+├── eduvista_logo.png
+├── eduvista_dashboard.png
+├── lovable_logo.png
+├── luxand_logo.png
+└── rfid_logo.png
