@@ -35,18 +35,20 @@
      TECHNOLOGY STACK
      ============================================================ -->
 
-<div align="center">
-
-<table>
+<table align="center">
 <tr>
 
-<td align="center">
+<td align="center" width="180">
 
-<img src="assets/lovable_logo.png" alt="Lovable AI" height="48"/>
+<img
+  src="assets/lovable_logo.png"
+  alt="Lovable AI"
+  height="42"
+/>
 
 <br/>
 
-<strong>Lovable AI</strong>
+<b>Lovable AI</b>
 
 <br/>
 
@@ -54,13 +56,19 @@
 
 </td>
 
-<td align="center">
+<td width="25"></td>
 
-<img src="assets/luxand_logo.png" alt="Luxand Cloud API" height="48"/>
+<td align="center" width="180">
+
+<img
+  src="assets/luxand_logo.png"
+  alt="Luxand Cloud API"
+  height="42"
+/>
 
 <br/>
 
-<strong>Luxand Cloud API</strong>
+<b>Luxand Cloud API</b>
 
 <br/>
 
@@ -68,13 +76,19 @@
 
 </td>
 
-<td align="center">
+<td width="25"></td>
 
-<img src="assets/rfid_logo.png" alt="RFID" height="48"/>
+<td align="center" width="180">
+
+<img
+  src="assets/rfid_logo.png"
+  alt="RFID"
+  height="42"
+/>
 
 <br/>
 
-<strong>RFID</strong>
+<b>RFID</b>
 
 <br/>
 
@@ -87,22 +101,37 @@
 
 <br/>
 
+<!-- ============================================================
+     PROJECT ACTIONS
+     ============================================================ -->
+
+<p align="center">
+
 <a href="https://edu-vista-attendance.lovable.app/">
-  <strong>🚀 Launch Live Demo</strong>
+  <img
+    src="https://img.shields.io/badge/🚀%20LIVE%20DEMO-Launch%20EduVista-0F2027?style=for-the-badge"
+    alt="Launch EduVista"
+  />
 </a>
 
-&nbsp;&nbsp;•&nbsp;&nbsp;
+&nbsp;
 
 <a href="https://github.com/Riddhis2226/Edu-Vista-Attendance">
-  <strong>⭐ View Repository</strong>
+  <img
+    src="https://img.shields.io/badge/⭐%20GITHUB-View%20Repository-203A43?style=for-the-badge"
+    alt="View GitHub Repository"
+  />
 </a>
 
-</div>
-<p>
-  <strong>
-    # Classroom photo → face detection & recognition → reviewable attendance session.
-  </strong>
 </p>
+
+<p align="center">
+  <strong>AI-powered attendance with face recognition and IoT-ready RFID integration.</strong>
+</p>
+
+</div>
+
+# Classroom photo → face detection & recognition → reviewable attendance session.
 
 </div>
 
