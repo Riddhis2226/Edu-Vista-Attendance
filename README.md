@@ -1,110 +1,100 @@
-<div align="center">
-
 <!-- ============================================================
-     EDVISTA BRAND HEADER
+     TECHNOLOGY STACK
      ============================================================ -->
+
+<table align="center">
+<tr>
+
+<td align="center" width="180">
 
 <img
-  src="assets/eduvista_logo.png"
-  alt="EduVista — Beyond Attendance"
-  width="280"
+  src="assets/lovable_logo.png"
+  alt="Lovable AI"
+  height="42"
 />
 
-<br/><br/>
+<br/>
 
-<!-- ============================================================
-     ANIMATED PROJECT TITLE
-     ============================================================ -->
+<b>Lovable AI</b>
+
+<br/>
+
+<sub>Application Platform</sub>
+
+</td>
+
+<td width="25"></td>
+
+<td align="center" width="180">
 
 <img
-  src="https://readme-typing-svg.demolab.com?font=Inter&weight=700&size=26&duration=2800&pause=1200&color=2C5364&center=true&vCenter=true&width=950&lines=EDUVISTA;AI-Powered+%26+IoT+Integrated+Smart+Attendance+System"
-  alt="EduVista — AI-Powered & IoT Integrated Smart Attendance System"
+  src="assets/luxand_logo.png"
+  alt="Luxand Cloud API"
+  height="42"
 />
 
-<br/><br/>
+<br/>
 
-<!-- ============================================================
-     APPLICATION PREVIEW
-     ============================================================ -->
+<b>Luxand Cloud API</b>
+
+<br/>
+
+<sub>Face Detection & Recognition</sub>
+
+</td>
+
+<td width="25"></td>
+
+<td align="center" width="180">
 
 <img
-  src="assets/eduvista_dashboard.png"
-  alt="EduVista Smart Attendance Dashboard"
-  width="100%"
+  src="assets/rfid_logo.png"
+  alt="RFID"
+  height="42"
 />
 
-<br/><br/>
+<br/>
 
-<!-- ============================================================
-     TECHNOLOGY LOGOS
-     ============================================================ -->
+<b>RFID</b>
 
-<p>
-  <img
-    src="assets/lovable_logo.png"
-    alt="Lovable AI"
-    height="42"
-  />
+<br/>
 
-  &nbsp;&nbsp;&nbsp;&nbsp;
+<sub>IoT Attendance Hardware</sub>
 
-  <img
-    src="assets/luxand_logo.png"
-    alt="Luxand Cloud API — Face Detection & Recognition"
-    height="42"
-  />
+</td>
 
-  &nbsp;&nbsp;&nbsp;&nbsp;
-
-  <img
-    src="assets/rfid_logo.png"
-    alt="RFID"
-    height="42"
-  />
-</p>
-
-<p>
-  <sub><b>Lovable AI</b></sub>
-  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-  <sub><b>Luxand Cloud API</b></sub>
-  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-  <sub><b>RFID</b></sub>
-</p>
+</tr>
+</table>
 
 <br/>
 
 <!-- ============================================================
-     PROJECT LINKS / STATUS
+     PROJECT ACTIONS
      ============================================================ -->
 
-<p>
-  <a href="https://edu-vista-attendance.lovable.app/">
-    <img
-      src="https://img.shields.io/badge/Live_Demo-Launch_App-3E8FA9?style=for-the-badge&logo=vercel&logoColor=white"
-      alt="Launch EduVista Live Demo"
-    />
-  </a>
+<p align="center">
 
+<a href="https://edu-vista-attendance.lovable.app/">
   <img
-    src="https://img.shields.io/github/stars/Riddhis2226/Edu-Vista-Attendance?style=for-the-badge&color=0F2027"
-    alt="GitHub Stars"
+    src="https://img.shields.io/badge/🚀%20LIVE%20DEMO-Launch%20EduVista-0F2027?style=for-the-badge"
+    alt="Launch EduVista"
   />
+</a>
 
+&nbsp;
+
+<a href="https://github.com/Riddhis2226/Edu-Vista-Attendance">
   <img
-    src="https://img.shields.io/badge/Status-Live%20Demo-2C5364?style=for-the-badge"
-    alt="Project Status: Live Demo"
+    src="https://img.shields.io/badge/⭐%20GITHUB-View%20Repository-203A43?style=for-the-badge"
+    alt="View GitHub Repository"
   />
+</a>
+
 </p>
 
-<br/>
-
-<strong>
-  Classroom photo → face detection & recognition → reviewable attendance session.
-</strong>
-
-</div>
-
----
+<p align="center">
+  <strong>AI-powered attendance with face recognition and IoT-ready RFID integration.</strong>
+</p>
 
 ## Project Snapshot
 
