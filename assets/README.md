@@ -1,4 +1,4 @@
-```mermaid
+```markdown
 assets/
 ├── eduvista-logo.png
 ├── eduvista-dashboard.png
