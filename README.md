@@ -113,9 +113,6 @@
     alt="Launch EduVista"
   />
 </a>
-
-&nbsp;
-
 <a href="https://github.com/Riddhis2226/Edu-Vista-Attendance">
   <img
     src="https://img.shields.io/badge/⭐%20GITHUB-View%20Repository-203A43?style=for-the-badge"
@@ -131,7 +128,7 @@
 
 </div>
 
-# Classroom photo → face detection & recognition → reviewable attendance session.
+## Classroom photo → face detection & recognition → reviewable attendance session.
 
 </div>
 
