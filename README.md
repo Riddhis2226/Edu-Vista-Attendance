@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="https://capsule-render.vercel.app/api?type=waving&color=0:0F2027,50:203A43,100:2C5364&height=240&section=header&text=EDUVISTA&fontSize=52&fontColor=FFFFFF&animation=fadeIn&fontAlignY=35&desc=AI-Powered%20Smart%20Attendance%20Platform&descAlignY=55&descSize=16&descColor=D6E4EA" width="100%"/>
+<img src="https://capsule-render.vercel.app/api?type=waving&color=0:0F2027,50:203A43,100:2C5364&height=240&section=header&text=EDUVISTA&fontSize=52&fontColor=FFFFFF&animation=fadeIn&fontAlignY=35&desc=Smart%20Attendance%20Platform&descAlignY=55&descSize=16&descColor=D6E4EA" width="100%"/>
 
 <br/>
 
@@ -20,8 +20,6 @@
 
 **Classroom photo → face detection & recognition → reviewable attendance session.**
 
-Role-based platform for educational institutions. Built on Lovable AI with Luxand Cloud for facial recognition and RFID in the intended architecture.
-
 </div>
 
 ---
@@ -30,13 +28,13 @@ Role-based platform for educational institutions. Built on Lovable AI with Luxan
 
 | Aspect | Detail |
 |:--|:--|
-| **Problem** | Manual roll-call is slow and error-prone; basic face demos fail without clear review states |
-| **Solution** | Automated attendance workflow from a single classroom photo, with explicit detection / recognition / review modes |
-| **Primary Platform** | Lovable AI |
-| **Recognition Engine** | Luxand Cloud API (detect · recognize · enroll) |
-| **Hardware Direction** | RFID (architecture referenced; not implemented in current `main`) |
-| **Access Model** | Admin / Faculty consoles + optional MCP tools for AI agents |
-| **Deployment** | Live web demo (photo/webcam workflow) |
+| **Problem** | Manual roll-call is slow and error-prone |
+| **Solution** | Photo-based attendance with explicit review states |
+| **Platform** | Lovable AI |
+| **Recognition** | Luxand Cloud API (detect · recognize · enroll) |
+| **Hardware** | RFID architecture; not in current `main` |
+| **Access** | Admin / Faculty consoles + controlled MCP access |
+| **Deployment** | Live web demo (photo/webcam) |
 
 ---
 
@@ -46,13 +44,13 @@ Role-based platform for educational institutions. Built on Lovable AI with Luxan
 |:--|:--|
 | Role-based access | Admin and Faculty consoles with protected routes |
 | Classroom photo attendance | Single image → detection + recognition pipeline |
-| Face enrollment | Controlled enrollment and deletion against Luxand |
-| Attendance review workflow | Explicit modes and flags; faculty override before finalization |
+| Face enrollment | Controlled enroll / delete against Luxand |
+| Review workflow | Explicit modes + faculty override before finalization |
 | Lecture targets | Configurable thresholds per subject / batch |
 | History & analytics | Session history and trend views |
 | Audit logging | Administrative action trail |
-| MCP access | Read-only tools for authenticated AI agents (same authorization model) |
-| RFID | Part of intended architecture; current `main` focuses on photo/webcam |
+| MCP access | Read-only tools for authenticated AI agents |
+| RFID | Intended architecture; current `main` is photo/webcam only |
 
 ---
 
@@ -72,7 +70,7 @@ flowchart TB
 
     LUX[Luxand Cloud API<br/>Detect · Recognize · Enroll]
     RFID[RFID<br/>Hardware Architecture]
-    DB[(Attendance Data + RLS)]
+    DB[(Attendance Data)]
 
     F --> APP
     APP --> LUX
@@ -92,18 +90,16 @@ flowchart TB
 
 ## Attendance Recognition Workflow
 
-**Detection** — a face is present in the image.  
-**Recognition** — the face matches an enrolled identity.
+**Detection** = face present in the image.  
+**Recognition** = face matches an enrolled identity.
 
 | Mode | Meaning | Outcome |
 |:--|:--|:--|
-| **Recognized** | Identity match returned by Luxand with confidence score | Attendance candidate (verified according to application workflow) |
-| **Detected** | Face present but identity unresolved | Flagged for manual review — not treated as verified attendance |
-| **Estimated** | Recognition path unavailable (e.g. API/network failure) | Simulation/demo fallback records, explicitly flagged; requires faculty review before finalization |
+| **Recognized** | Identity match + confidence score | Attendance candidate; final status follows review workflow |
+| **Detected** | Face present, identity unresolved | Flagged for manual review; not verified attendance |
+| **Estimated** | Recognition unavailable | Simulation/demo fallback; explicitly flagged; requires faculty review |
 
-Faculty retain full manual override.  
-
-**Principle: data integrity over forced session completeness.** Estimated records are never presented as equivalent to genuine recognition.
+**Principle:** Data integrity over forced session completeness.
 
 ---
 
@@ -137,24 +133,25 @@ Faculty retain full manual override.
 |:--|:--|
 | Authentication & roles | Role-based access with protected routes |
 | Data access | Row-Level Security on attendance data |
-| Privileged credentials | Luxand and backend credentials remain server-side only |
-| Biometric processing | Face detection and recognition performed by Luxand Cloud (third-party). Enrollment and deletion controlled through authorized roles |
-| MCP access | OAuth consent → user token → MCP → RLS. Agents inherit the authorizing user’s permissions |
+| Privileged credentials | No privileged backend credentials exposed to the client |
+| Biometric processing | Face detection/recognition via Luxand Cloud (third-party). Enrollment/deletion restricted to authorized roles |
+| MCP access | OAuth consent → user token → MCP → RLS |
 | Audit logging | Administrative actions recorded |
 
-No compliance certifications are claimed.
+No compliance certifications claimed.
 
 ---
 
 ## MCP Integration
 
-Controlled AI-agent access to attendance data:
+Controlled AI-agent access to attendance data.
 
 ```text
 AI Agent → OAuth Consent → User JWT → MCP → Database → RLS → Authorized Data
 ```
 
-Read-only tools for students, attendance history, sessions, and lecture targets. MCP does not bypass application authorization.
+Read-only tools for student, session, attendance, and lecture-target data.  
+MCP does not bypass application authorization.
 
 ---
 
@@ -164,7 +161,7 @@ Read-only tools for students, attendance history, sessions, and lecture targets.
 |:--|:--|
 | **Lovable AI** | Application platform and development environment |
 | **Luxand Cloud API** | Face detection, recognition, and enrollment |
-| **RFID** | Hardware-based attendance identification (architecture direction; not implemented in current `main` branch) |
+| **RFID** | Hardware-based attendance identification (architecture direction; not implemented in current `main`) |
 
 ---
 
@@ -178,7 +175,7 @@ cp .env.example .env
 bun run dev
 ```
 
-Public frontend configuration (Supabase URL + publishable key) is expected. Privileged credentials (Luxand token, service keys) are configured only as server-side secrets.
+Public frontend configuration is expected. Privileged credentials stay server-side.
 
 ---
 
@@ -189,7 +186,7 @@ bun run test
 bunx playwright test
 ```
 
-Unit and end-to-end tests cover UI components and role-based flows.
+Unit and end-to-end tests cover core UI and role-based workflows.
 
 ---
 
