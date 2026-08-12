@@ -128,15 +128,11 @@
 
 </div>
 
-## Classroom photo → face detection & recognition → reviewable attendance session.
+## Classroom photo → face detection & recognition → reviewable attendance session
 
 </div>
 
 ---
-
-<p align="center">
-  <strong>AI-powered attendance with face recognition and IoT-ready RFID integration.</strong>
-</p>
 
 ## Project Snapshot
 
